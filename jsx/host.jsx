@@ -1,1 +1,675 @@
-var T0202=function(){var t=254016e6,e={},r={},n="",a=null;function o(t){var e=new Time;return e.ticks=String(Math.round(t)),e}function u(e){var r=Number(e.timebase);return{tpf:r,fps:t/r,w:Number(e.frameSizeHorizontal),h:Number(e.frameSizeVertical)}}function i(t){for(var e=[],r=0;r<t.videoTracks.numTracks;r++)for(var n=t.videoTracks[r],a=0;a<n.clips.numItems;a++){var o=n.clips[a];o.isSelected()&&e.push({t:r,c:a,clip:o})}return e}function s(t){if(!t)return[];if("string"==typeof t)return t.split(",");for(var e=[],r=0;r<t.length;r++)e.push(String(t[r]));return e}var c={Transform:["Transform","\ubcc0\ud615","\ubcc0\ud658"],"Gaussian Blur":["Gaussian Blur (Legacy)","Gaussian Blur","Fast Blur","\uac00\uc6b0\uc2dc\uc548 \ud750\ub9bc(\ub808\uac70\uc2dc)","\uac00\uc6b0\uc2dc\uc548 \ud750\ub9bc","\ube60\ub978 \ud750\ub9bc"],"Turbulent Displace":["Turbulent Displace","\ub09c\ub958 \ubcc0\uc704"],"Posterize Time":["Posterize Time","\uc2dc\uac04 \ud3ec\uc2a4\ud130\ud654"],"Wave Warp":["Wave Warp","\ubb3c\uacb0 \ube44\ud2c0\uae30"],Tint:["Tint","\uc0c9\uc870"],"Brightness & Contrast":["Brightness & Contrast","\ubc1d\uae30 \ubc0f \ub300\ube44"],ProcAmp:["ProcAmp"]},f={"Turbulent Displace":{Amount:1,Size:2,"Offset (Turbulence)":3,Complexity:4,Evolution:5,"Cycle Evolution":7,"Cycle (in Revolutions)":8,"Random Seed":9},"Posterize Time":{"Frame Rate":0},"Wave Warp":{"Wave Height":1,"Wave Width":2,Direction:3,"Wave Speed":4},Tint:{"Map Black To":0,"Map White To":1,"Amount to Tint":2},"Brightness & Contrast":{Brightness:0,Contrast:1},"Gaussian Blur":{Blurriness:0},ProcAmp:{Brightness:0,Contrast:1,Hue:2,Saturation:3}};var l={Transform:[/^transform$/i,/^\uBCC0\uD615$/,/^\uBCC0\uD658$/,/^\uD2B8\uB79C\uC2A4\uD3FC$/,/\uBCC0\uD615/,/transform/i],"Turbulent Displace":[/turbulent displace/i,/\uB09C\uB958/],"Posterize Time":[/posterize time/i,/\uC2DC\uAC04.*\uD3EC\uC2A4\uD130/,/\uD3EC\uC2A4\uD130.*\uC2DC\uAC04/],"Wave Warp":[/wave warp/i,/\uBB3C\uACB0/,/\uD30C\uB3C4/],Tint:[/^tint$/i,/^\uC0C9\uC870$/],"Brightness & Contrast":[/brightness/i,/\uBC1D\uAE30/],"Gaussian Blur":[/gaussian/i,/\uAC00\uC6B0\uC2DC\uC548/],ProcAmp:[/procamp/i]},p={Transform:/^AE\.ADBE Geometry2?$/,"Turbulent Displace":/Turbulent Displace/,"Posterize Time":/Posterize Time/,"Wave Warp":/Wave Warp/,Tint:/^AE\.ADBE Tint$/,"Brightness & Contrast":/Brightness/,"Gaussian Blur":/Gaussian Blur|Fast Blur/},h={};function m(t){var e=l[t],r=[];if(!e)return r;var n=[];try{n=s(qe.project.getVideoEffectList())}catch(c){return r}for(var a=0;a<e.length;a++)for(var o=0;o<n.length;o++)if(e[a].test(n[o])&&!/^VR /.test(n[o])){for(var u=!1,i=0;i<r.length;i++)r[i]===n[o]&&(u=!0);u||r.push(n[o])}return r}function v(t,e,r,o,u){for(var i=function(t){for(var e=[],r=(h[t]?[h[t]]:[]).concat(c[t]||[t],m(t)),n=0;n<r.length;n++){for(var a=!1,o=0;o<e.length;o++)e[o]===r[n]&&(a=!0);a||e.push(r[n])}return e}(u),s=[],f=0;f<i.length&&f<8;f++){var l=null;try{l=qe.project.getVideoEffectByName(i[f])}catch(g){}if(l){var v=null;try{v=T(t,e,r,o,l)}catch(y){v=null}if(v){if(!p[u]||p[u].test(v.matchName))return h[u]=i[f],v;s.push(i[f]+":"+v.matchName);try{a.qi.getComponentAt(a.idx).remove()}catch(d){}}else s.push(i[f]+":none")}}return n="fx "+u+" ["+s.join(", ")+"] "+n,null}function g(e){try{return Number(e.start.ticks)}catch(r){}try{return Number(e.start.secs)*t}catch(n){}return NaN}function y(t,e,r,n){var a=[],o=[];if(!t)return a;var u,i,s=Number(r.start.ticks),c=[];for(u=0;u<t.numItems;u++)(i=t.getItemAt(u))&&"Empty"!==i.type&&c.push({it:i,st:g(i),clip:"Clip"===i.type});function f(t){for(var e=0;e<o.length;e++)if(o[e]===t)return;o.push(t),a.push(t)}for(u=0;u<c.length;u++)!isNaN(c[u].st)&&Math.abs(c[u].st-s)<n/2&&c[u].it.name===r.name&&f(c[u].it);for(u=0;u<c.length;u++)!isNaN(c[u].st)&&Math.abs(c[u].st-s)<n/2&&f(c[u].it);var l=0;for(u=0;u<c.length;u++)c[u].clip&&(l===e&&f(c[u].it),l++);return e<c.length&&f(c[e].it),a}function d(t,e,r,n){var a=y(t,e,r,n);return a.length?a[0]:null}function C(t){var e=[];try{for(var r=0;r<t.numComponents;r++)e.push(t.getComponentAt(r).name)}catch(n){}return e}function A(t,e){try{var r=t.numComponents;if(r<=e.length)return;for(var n=0;n<r;n++)if(n>=e.length||t.getComponentAt(n).name!==e[n])return void t.getComponentAt(n).remove()}catch(a){}}function E(t){return"AE.ADBE Geometry"===t||"AE.ADBE Geometry2"===t}function T(t,e,r,o,u){var i=t.videoTracks[e.t].clips[e.c],s=function(t){for(var e=[],r=t.components,n=0;n<r.numItems;n++)e.push(r[n].matchName+"#"+r[n].properties.numItems);return e}(i),c=y(o.getVideoTrackAt(e.t),e.c,i,r.tpf);if(!c.length)return n="qe:V"+(e.t+1)+"#"+e.c,null;for(var f=[],l=0;l<c.length&&l<4;l++){var p=c[l],h=C(p);try{p.addVideoEffect(u)}catch(d){f.push("add"+l+":"+d);continue}var m=(i=t.videoTracks[e.t].clips[e.c]).components;if(m.numItems>s.length){for(var v=0;v<m.numItems;v++)if(v>=s.length||s[v]!==m[v].matchName+"#"+m[v].properties.numItems)return a={qi:p,idx:v},m[v];return a={qi:p,idx:m.numItems-1},m[m.numItems-1]}f.push("c"+l+":"+p.name+"@"+g(p)+" "+h.length+">"+p.numComponents),A(p,h)}return n="nocomp:"+s.length+" start "+i.start.ticks+" | "+f.join(" ; "),null}function B(t,e,r){for(var n=t.properties,a=0;a<n.numItems;a++)if(n[a].displayName===e)return n[a];var o=f[r];return o&&o[e]!==undefined&&o[e]<n.numItems?n[o[e]]:null}function b(t){var e=t.properties;return{pos:e[1],uni:e[2],scale:e[3],sw:e[4],rot:e[7],op:e[8],useComp:e[9],shutter:e[10]}}function N(t,e){if(t&&e&&e.length){try{t.setTimeVarying(!0)}catch(a){}for(var r=0;r<e.length;r++){var n=o(e[r][0]);t.addKey(n),t.setValueAtKey(n,e[r][1],r===e.length-1?1:0);try{t.setInterpolationTypeAtKey(n,0,r===e.length-1?1:0)}catch(u){}}}}function q(t,e,r){if(!t)return t;for(var n=[],a=0;a*e<=r;a++)for(var o=0;o<t.length;o++)if(!(a>0&&0===t[o][0])){var u=t[o][0]+a*e;if(u>r)break;var i=t[o].slice(0);i[0]=u,n.push(i)}return n}function k(t,e,r,n,a){if(a<=0)return 0;if(a>=1)return 1;for(var o=0,u=1,i=a,s=0;s<40;s++)3*(1-(i=(o+u)/2))*(1-i)*i*t+3*(1-i)*i*i*r+i*i*i<a?o=i:u=i;return 3*(1-i)*(1-i)*i*e+3*(1-i)*i*i*n+i*i*i}function x(t,e){return"AE.ADBE Motion"===t?0===e?"pos":1===e||2===e?"scale":4===e?"rot":"other":"AE.ADBE Opacity"===t?0===e?"op":"skip":E(t)?1===e?"pos":3===e||4===e?"scale":7===e?"rot":8===e?"op":"other":"other"}function D(t,e,r){if("number"==typeof t&&"number"==typeof e)return t+(e-t)*r;if(t&&e&&t.length!==undefined&&t.length===e.length){for(var n=[],a=0;a<t.length;a++){if("number"!=typeof t[a])return null;n.push(t[a]+(e[a]-t[a])*r)}return n}return null}function V(t,e){if("number"==typeof t)return t===e;if(t&&e&&t.length!==undefined){for(var r=0;r<t.length;r++)if(t[r]!==e[r])return!1;return!0}return!0}function R(t){var e=t.getKeys(),r=[];if(!e)return r;for(var n=0;n<e.length;n++){var a=Number(e[n].ticks);r.push([a,t.getValueAtKey(e[n])])}return r.sort(function(t,e){return t[0]-e[0]}),r}function j(t,e){for(var r={},n=0;n<e.orig.length;n++)r[e.orig[n][0]]=!0;for(var a=R(t),u=0;u<a.length;u++)r[a[u][0]]||t.removeKey(o(a[u][0]));for(var i=0;i<e.orig.length;i++)t.setValueAtKey(o(e.orig[i][0]),e.orig[i][1],i===e.orig.length-1?1:0)}return{applyPreset:function(e){var r=app.project.activeSequence;if(!r)return"ERR|noseq";var a=u(r),o=i(r);if(!o.length)return"ERR|nosel";var s=null;try{app.enableQE(),s=qe.project.getActiveSequence()}catch(dt){}if(!s)return"ERR|notf|noqe";for(var c=!!("rate"===e.type||e.scale||e.pos||e.rot||e.op||e.sw||e.sh||e.sScale),f=Number(r.getPlayerPosition().ticks),l=a.fps/30,p=Math.min(a.w,a.h)/1080,h=0,m=0,g="",y={},d=0,C=0;C<o.length;C++){var A=o[C],T=A.clip,k=Number(T.start.ticks),x=Number(T.end.ticks),D=Number(T.inPoint.ticks),V="playhead"===e.anchor&&f>=k&&f<x?f:k;V=k+Math.round((V-k)/a.tpf)*a.tpf;var R=x-a.tpf;R<=V&&(R=V+a.tpf);for(var j=function(t){return D+(t-k)},I=e.fx||[],S=0;S<I.length;S++){var K=null;try{K=v(r,A,a,s,I[S].fx)}catch(Ct){K=null}K?I[S]._comp=K:y[I[S].fx]=1}var P=null;if(c){var M=null;try{M=v(r,A,a,s,"Transform")}catch(At){M=null}if(!M||!E(M.matchName)){m++;continue}P=b(M)}if("rate"!==e.type){var W,w,z={scale:e.scale,pos:e.pos,rot:e.rot,op:e.op,sw:e.sw,sh:e.sh},G=[];for(S=0;S<I.length;S++)for(var $=I[S].keys||[],O=0;O<$.length;O++)G.push({x:S,name:$[O][0],arr:$[O][1]});if("span"===e.type){var _=(R-V)/a.tpf;W=function(t){return V+Math.round(t*_)*a.tpf}}else{if("loop"===e.type&&e.period>0){var L=(R-V)/a.tpf/l;for(w in z)z[w]=q(z[w],e.period,L);for(O=0;O<G.length;O++)G[O].arr=q(G[O].arr,e.period,L)}var F=0;for(w in z)z[w]&&z[w].length&&(F=Math.max(F,z[w][z[w].length-1][0]));for(O=0;O<G.length;O++)G[O].arr.length&&(F=Math.max(F,G[O].arr[G[O].arr.length-1][0]));var H=V,Q=1;"out"===e.type&&(H=x-a.tpf-Math.round(F*l)*a.tpf)<k&&(H=k);var Y=(R-H)/a.tpf,J=F*l;"loop"!==e.type&&J>Y&&J>0&&Y>0&&(Q=Y/J,d++),W=function(t){return H+Math.round(t*l*Q)*a.tpf}}var U=function(t,e){var r=[],n={};if(!t)return r;for(var a=0;a<t.length;a++){var o=j(W(t[a][0]));if(!(o>j(x)-1)){var u=e(t[a]);n[o]===undefined?(n[o]=r.length,r.push([o,u])):r[n[o]][1]=u}}return r},X=function(t){return t[1]},Z=e.posToY?function(t){return[.5+t[1]*p/a.w,.5+t[2]*(e.posToY/a.h-.5)]}:function(t){return[.5+t[1]*p/a.w,.5+t[2]*p/a.h]};if(P){var tt=!(!z.sw&&!z.sh);try{P.uni.setValue(!tt,1)}catch(Et){}if(!e.sScale||z.scale||tt||P.scale.setValue(e.sScale,1),tt?(N(P.scale,U(z.sh||z.scale,X)),N(P.sw,U(z.sw||z.scale,X))):N(P.scale,U(z.scale,X)),e.shutter){try{P.useComp.setValue(!1,1)}catch(Tt){}try{P.shutter.setValue(e.shutter,1)}catch(Bt){}}N(P.pos,U(z.pos,Z)),N(P.rot,U(z.rot,X)),N(P.op,U(z.op,X))}for(S=0;S<I.length;S++){var et=I[S]._comp;if(et){var rt=I[S].set||[];for(O=0;O<rt.length;O++){var nt=B(et,rt[O][0],I[S].fx);if(nt)try{nt.setValue(rt[O][1],1)}catch(bt){}else y[I[S].fx+":"+rt[O][0]]=1}}}for(O=0;O<G.length;O++){var at=I[G[O].x]._comp;if(at){var ot=B(at,G[O].name,I[G[O].x].fx);ot?N(ot,U(G[O].arr,X)):y[I[G[O].x].fx+":"+G[O].name]=1}}for(S=0;S<I.length;S++){var ut=I[S]._comp,it=I[S].color||[];if(ut)for(O=0;O<it.length;O++){var st=B(ut,it[O][0],I[S].fx);if(st)try{st.setColorValue(255,it[O][1][0],it[O][1][1],it[O][1][2],1)}catch(Nt){y[I[S].fx+":"+it[O][0]+"(color)"]=1}else y[I[S].fx+":"+it[O][0]]=1}}for(S=0;S<I.length;S++){var ct=I[S]._comp,ft=I[S].rate||[];if(ct)for(O=0;O<ft.length;O++){var lt=B(ct,ft[O][0],I[S].fx);lt?N(lt,[[j(V),0],[j(R),Math.round(ft[O][1]*(R-V)/t*100)/100]]):y[I[S].fx+":"+ft[O][0]]=1}}for(S=0;S<I.length;S++)I[S]._comp=null;h++}else{var pt=(R-V)/t,ht=Math.round(100*Math.min(100+e.rate*pt,e.max||200))/100,mt=e.dir>0?100:ht,vt=e.dir>0?ht:100;try{P.uni.setValue(!0,1)}catch(qt){}N(P.scale,[[j(V),mt],[j(R),vt]]),g=mt+"-"+vt,h++}}var gt=[];for(var yt in y)gt.push(yt);return!h&&m?"ERR|notf|"+n:"OK|"+h+"|"+m+"|"+g+"|"+gt.join(",")+"|"+d},applyCurve:function(t){var r=app.project.activeSequence;if(!r)return"ERR|noseq";var n=u(r),a=i(r);if(!a.length)return"ERR|nosel";for(var s=Number(r.getPlayerPosition().ticks),c=Math.max(1,t.step||1)*n.tpf,f=0,l=0,p=0;p<a.length;p++){for(var h=a[p].clip,m=Number(h.start.ticks),v=Number(h.inPoint.ticks)+(s-m),g=!1,y=h.components,d=0;d<y.numItems;d++)for(var C=y[d],A=C.properties,E=0;E<A.numItems;E++){var T=x(C.matchName,E);if("skip"!==T&&t.props[T]){var B=A[E],b=!1;try{b=B.isTimeVarying()}catch(O){}if(b){var N=h.nodeId+"|"+d+"|"+E,q=R(B);if(!(q.length<2)){var I=e[N];I&&q.length===I.baked?(j(B,I),q=R(B)):(I={orig:q},e[N]=I);for(var S=I.orig,K=0;K<S.length-1;K++){var P=S[K][0],M=S[K+1][0],W=S[K][1],w=S[K+1][1];if(("playhead"!==t.scope||v>=P&&v<=M)&&"boolean"!=typeof W&&!V(W,w)&&null!==D(W,w,.5)){for(var z=M-P,G=P+c;G<M-n.tpf/2;G+=c){var $=o(G);B.addKey($),B.setValueAtKey($,D(W,w,k(t.x1,t.y1,t.x2,t.y2,(G-P)/z)),0)}l++,g=!0}}I.baked=B.getKeys()?B.getKeys().length:0;try{B.setValueAtKey(o(S[S.length-1][0]),S[S.length-1][1],1)}catch(_){}}}}}g&&f++}return"OK|"+f+"|"+l},restoreCurve:function(){var t=app.project.activeSequence;if(!t)return"ERR|noseq";var r=i(t);if(!r.length)return"ERR|nosel";for(var n=0,a=0;a<r.length;a++)for(var o=r[a].clip,u=o.components,s=0;s<u.numItems;s++)for(var c=u[s].properties,f=0;f<c.numItems;f++){var l=o.nodeId+"|"+s+"|"+f;if(e[l]){try{j(c[f],e[l]),n++}catch(p){}delete e[l]}}return"OK|"+n},listEffects:function(){try{app.enableQE()}catch(r){}var t=[],e=[];try{t=s(qe.project.getVideoEffectList())}catch(n){}try{e=s(qe.project.getAudioEffectList())}catch(a){}return"OK|"+t.join("\t")+"|"+e.join("\t")},addEffect:function(t){var e=app.project.activeSequence;if(!e)return"ERR|noseq";var a=u(e);try{app.enableQE()}catch(v){}var o=qe.project.getActiveSequence(),s=t.a?function(t){for(var e=[],r=0;r<t.audioTracks.numTracks;r++)for(var n=t.audioTracks[r],a=0;a<n.clips.numItems;a++){var o=n.clips[a];o.isSelected()&&e.push({t:r,c:a,clip:o})}return e}(e):i(e);if(!s.length)return t.a?"ERR|noasel":"ERR|nosel";var f=t.a?function(t){try{return qe.project.getAudioEffectByName(t)}catch(e){return null}}(t.n):function(t){if(r[t])return r[t];var e,a=c[t]||[t],o=null;for(e=0;e<a.length&&!o;e++)try{o=qe.project.getVideoEffectByName(a[e])}catch(u){o=null}return o||(o=function(t){for(var e=m(t),r=0;r<e.length;r++){var n=null;try{n=qe.project.getVideoEffectByName(e[r])}catch(u){}if(n)return n}return null}(t)),o?r[t]=o:n="fx:"+t,o}(t.n);if(!f)return"ERR|nofx";for(var l=0,p=0;p<s.length;p++)try{if(t.a){var h=d(o.getAudioTrackAt(s[p].t),s[p].c,s[p].clip,a.tpf);h&&(h.addAudioEffect(f),l++)}else T(e,s[p],a,o,f)&&l++}catch(g){}return"OK|"+l},diag:function(){var t=[];try{t.push("Premiere "+app.version+" build "+app.build)}catch(A){}try{t.push("locale "+$.locale+" / os "+$.os)}catch(E){}t.push("lastErr "+n);try{app.enableQE();for(var e=s(qe.project.getVideoEffectList()),r=[],a=0;a<e.length;a++)/trans|geometr|\uBCC0\uD615|\uBCC0\uD658/i.test(e[a])&&r.push(e[a]);t.push("fx("+e.length+"): "+r.join(" / "));var o=null;try{o=qe.project.getVideoEffectByName("Transform")}catch(T){}t.push("byName(Transform) "+(o?"ok":"null"))}catch(B){t.push("qe err "+B)}try{var u=app.project.activeSequence;t.push("seq "+u.name+" "+u.frameSizeHorizontal+"x"+u.frameSizeVertical);for(var c=i(u),f=qe.project.getActiveSequence(),l=0;l<c.length&&l<3;l++){for(var p=c[l].clip,h=[],m=0;m<p.components.numItems;m++)h.push(p.components[m].matchName);t.push("sel V"+(c[l].t+1)+"#"+c[l].c+" "+p.name+" start "+p.start.ticks+" | "+h.join(","));for(var v=f.getVideoTrackAt(c[l].t),y=[],d=0;d<v.numItems&&d<12;d++){var C=v.getItemAt(d);y.push(C.type+":"+C.name+"@"+g(C))}t.push("  qe "+y.join(" ; "))}}catch(b){t.push("seq err "+b)}return t.join("\n")},ping:function(){return"OK|"+app.version}}}();
+/* 0202Transition host script (ExtendScript, ES3) - keep ASCII only */
+var T0202 = (function () {
+    var TPS = 254016000000;
+    var snaps = {};
+    var TF_NAMES = ["Transform", "\uBCC0\uD615", "\uBCC0\uD658"];
+    var fxCache = {};
+    var lastErr = "";
+    var lastAdd = null;
+
+    function mkTime(ticks) {
+        var t = new Time();
+        t.ticks = String(Math.round(ticks));
+        return t;
+    }
+
+    function seqInfo(seq) {
+        var tb = Number(seq.timebase);
+        return { tpf: tb, fps: TPS / tb, w: Number(seq.frameSizeHorizontal), h: Number(seq.frameSizeVertical) };
+    }
+
+    function selectedClips(seq) {
+        var out = [];
+        for (var t = 0; t < seq.videoTracks.numTracks; t++) {
+            var tr = seq.videoTracks[t];
+            for (var c = 0; c < tr.clips.numItems; c++) {
+                var cl = tr.clips[c];
+                if (cl.isSelected()) out.push({ t: t, c: c, clip: cl });
+            }
+        }
+        return out;
+    }
+
+    function selectedAudio(seq) {
+        var out = [];
+        for (var t = 0; t < seq.audioTracks.numTracks; t++) {
+            var tr = seq.audioTracks[t];
+            for (var c = 0; c < tr.clips.numItems; c++) {
+                var cl = tr.clips[c];
+                if (cl.isSelected()) out.push({ t: t, c: c, clip: cl });
+            }
+        }
+        return out;
+    }
+
+    function splitList(l) {
+        if (!l) return [];
+        if (typeof l === "string") return l.split(",");
+        var r = [];
+        for (var i = 0; i < l.length; i++) r.push(String(l[i]));
+        return r;
+    }
+
+    /* Some third-party plugins shadow built-in names (e.g. Film Impact "Gaussian Blur").
+       ALIASES lists names to try in order; first that exists wins. */
+    /* Korean UI names are best-effort (\u escapes keep this file ASCII). */
+    var ALIASES = {
+        "Transform": TF_NAMES,
+        "Gaussian Blur": ["Gaussian Blur (Legacy)", "Gaussian Blur", "Fast Blur",
+            "\uAC00\uC6B0\uC2DC\uC548 \uD750\uB9BC(\uB808\uAC70\uC2DC)", "\uAC00\uC6B0\uC2DC\uC548 \uD750\uB9BC", "\uBE60\uB978 \uD750\uB9BC"],
+        "Turbulent Displace": ["Turbulent Displace", "\uB09C\uB958 \uBCC0\uC704"],
+        "Posterize Time": ["Posterize Time", "\uC2DC\uAC04 \uD3EC\uC2A4\uD130\uD654"],
+        "Wave Warp": ["Wave Warp", "\uBB3C\uACB0 \uBE44\uD2C0\uAE30"],
+        "Tint": ["Tint", "\uC0C9\uC870"],
+        "Brightness & Contrast": ["Brightness & Contrast", "\uBC1D\uAE30 \uBC0F \uB300\uBE44"],
+        "ProcAmp": ["ProcAmp"]
+    };
+
+    /* parameter index fallback when display names are localized */
+    var PIDX = {
+        "Turbulent Displace": { "Amount": 1, "Size": 2, "Offset (Turbulence)": 3, "Complexity": 4, "Evolution": 5, "Cycle Evolution": 7, "Cycle (in Revolutions)": 8, "Random Seed": 9 },
+        "Posterize Time": { "Frame Rate": 0 },
+        "Wave Warp": { "Wave Height": 1, "Wave Width": 2, "Direction": 3, "Wave Speed": 4 },
+        "Tint": { "Map Black To": 0, "Map White To": 1, "Amount to Tint": 2 },
+        "Brightness & Contrast": { "Brightness": 0, "Contrast": 1 },
+        "Gaussian Blur": { "Blurriness": 0 },
+        "ProcAmp": { "Brightness": 0, "Contrast": 1, "Hue": 2, "Saturation": 3 }
+    };
+
+    function getVideoFx(name) {
+        if (fxCache[name]) return fxCache[name];
+        var names = ALIASES[name] || [name], e = null, i;
+        for (i = 0; i < names.length && !e; i++) {
+            try { e = qe.project.getVideoEffectByName(names[i]); } catch (x) { e = null; }
+        }
+        if (!e) e = scanFx(name);
+        if (e) fxCache[name] = e; else lastErr = "fx:" + name;
+        return e;
+    }
+
+    /* loose patterns to find an effect in a localized effect list */
+    var SCAN = {
+        "Transform": [/^transform$/i, /^\uBCC0\uD615$/, /^\uBCC0\uD658$/, /^\uD2B8\uB79C\uC2A4\uD3FC$/, /\uBCC0\uD615/, /transform/i],
+        "Turbulent Displace": [/turbulent displace/i, /\uB09C\uB958/],
+        "Posterize Time": [/posterize time/i, /\uC2DC\uAC04.*\uD3EC\uC2A4\uD130/, /\uD3EC\uC2A4\uD130.*\uC2DC\uAC04/],
+        "Wave Warp": [/wave warp/i, /\uBB3C\uACB0/, /\uD30C\uB3C4/],
+        "Tint": [/^tint$/i, /^\uC0C9\uC870$/],
+        "Brightness & Contrast": [/brightness/i, /\uBC1D\uAE30/],
+        "Gaussian Blur": [/gaussian/i, /\uAC00\uC6B0\uC2DC\uC548/],
+        "ProcAmp": [/procamp/i]
+    };
+    /* matchName each effect must have once added (null = don't check) */
+    var EXPECT = {
+        "Transform": /^AE\.ADBE Geometry2?$/,
+        "Turbulent Displace": /Turbulent Displace/,
+        "Posterize Time": /Posterize Time/,
+        "Wave Warp": /Wave Warp/,
+        "Tint": /^AE\.ADBE Tint$/,
+        "Brightness & Contrast": /Brightness/,
+        "Gaussian Blur": /Gaussian Blur|Fast Blur/
+    };
+    var fxOk = {};
+    function scanFx(name) {
+        var n = scanNames(name);
+        for (var i = 0; i < n.length; i++) { var e = null; try { e = qe.project.getVideoEffectByName(n[i]); } catch (x) {} if (e) return e; }
+        return null;
+    }
+    function scanNames(name) {
+        var pats = SCAN[name], out = [];
+        if (!pats) return out;
+        var list = [];
+        try { list = splitList(qe.project.getVideoEffectList()); } catch (x) { return out; }
+        for (var i = 0; i < pats.length; i++) {
+            for (var j = 0; j < list.length; j++) {
+                if (!pats[i].test(list[j]) || /^VR /.test(list[j])) continue;
+                var dup = false;
+                for (var k = 0; k < out.length; k++) if (out[k] === list[j]) dup = true;
+                if (!dup) out.push(list[j]);
+            }
+        }
+        return out;
+    }
+    function fxNames(name) {
+        var r = [], a = (fxOk[name] ? [fxOk[name]] : []).concat(ALIASES[name] || [name], scanNames(name));
+        for (var i = 0; i < a.length; i++) {
+            var dup = false;
+            for (var k = 0; k < r.length; k++) if (r[k] === a[i]) dup = true;
+            if (!dup) r.push(a[i]);
+        }
+        return r;
+    }
+    /* Add an effect and make sure it really landed (localized Premiere can hand back a dud
+       object for the English name). Tries every candidate name until the expected effect appears. */
+    function addFxVerified(seq, ref, info, qs, name) {
+        var names = fxNames(name), tried = [];
+        for (var i = 0; i < names.length && i < 8; i++) {
+            var obj = null;
+            try { obj = qe.project.getVideoEffectByName(names[i]); } catch (x) {}
+            if (!obj) continue;
+            var comp = null;
+            try { comp = addVideoFxTo(seq, ref, info, qs, obj); } catch (x2) { comp = null; }
+            if (!comp) { tried.push(names[i] + ":none"); continue; }
+            if (EXPECT[name] && !EXPECT[name].test(comp.matchName)) {
+                tried.push(names[i] + ":" + comp.matchName);
+                try { lastAdd.qi.getComponentAt(lastAdd.idx).remove(); } catch (x3) {}
+                continue;
+            }
+            fxOk[name] = names[i];
+            return comp;
+        }
+        lastErr = "fx " + name + " [" + tried.join(", ") + "] " + lastErr;
+        return null;
+    }
+
+    function getAudioFx(name) {
+        try { return qe.project.getAudioEffectByName(name); } catch (x) { return null; }
+    }
+
+    function qeTicks(it) {
+        try { return Number(it.start.ticks); } catch (e) {}
+        try { return Number(it.start.secs) * TPS; } catch (e2) {}
+        return NaN;
+    }
+
+    /* QE items that may correspond to a DOM clip, best guess first.
+       QE lists Empty gaps (and sometimes other item types) between clips, so try several strategies. */
+    function qeCandidates(qt, c, clip, tpf) {
+        var out = [], seen = [];
+        if (!qt) return out;
+        var cs = Number(clip.start.ticks), items = [], i, it;
+        for (i = 0; i < qt.numItems; i++) {
+            it = qt.getItemAt(i);
+            if (!it || it.type === "Empty") continue;
+            items.push({ it: it, st: qeTicks(it), clip: it.type === "Clip" });
+        }
+        function add(x) {
+            for (var k = 0; k < seen.length; k++) if (seen[k] === x) return;
+            seen.push(x); out.push(x);
+        }
+        for (i = 0; i < items.length; i++) if (!isNaN(items[i].st) && Math.abs(items[i].st - cs) < tpf / 2 && items[i].it.name === clip.name) add(items[i].it);
+        for (i = 0; i < items.length; i++) if (!isNaN(items[i].st) && Math.abs(items[i].st - cs) < tpf / 2) add(items[i].it);
+        var ci = 0;
+        for (i = 0; i < items.length; i++) { if (!items[i].clip) continue; if (ci === c) add(items[i].it); ci++; }
+        if (c < items.length) add(items[c].it);
+        return out;
+    }
+
+    function qeItemFor(qt, c, clip, tpf) {
+        var l = qeCandidates(qt, c, clip, tpf);
+        return l.length ? l[0] : null;
+    }
+
+    function qeNames(qi) {
+        var r = [];
+        try { for (var k = 0; k < qi.numComponents; k++) r.push(qi.getComponentAt(k).name); } catch (e) {}
+        return r;
+    }
+
+    /* if an effect landed on the wrong QE item, take it off again */
+    function undoOn(qi, before) {
+        try {
+            var n = qi.numComponents;
+            if (n <= before.length) return;
+            for (var k = 0; k < n; k++) {
+                if (k >= before.length || qi.getComponentAt(k).name !== before[k]) { qi.getComponentAt(k).remove(); return; }
+            }
+        } catch (e) {}
+    }
+
+    function isTF(m) { return m === "AE.ADBE Geometry" || m === "AE.ADBE Geometry2"; }
+
+    function compSig(clip) {
+        var r = [], comps = clip.components;
+        for (var i = 0; i < comps.numItems; i++) r.push(comps[i].matchName + "#" + comps[i].properties.numItems);
+        return r;
+    }
+
+    /* Adds an effect through QE and returns the NEW component.
+       QE inserts new effects at the top of the stack, so find it by diffing the component list. */
+    function addVideoFxTo(seq, ref, info, qs, fxObj) {
+        var clip = seq.videoTracks[ref.t].clips[ref.c];
+        var before = compSig(clip);
+        var cands = qeCandidates(qs.getVideoTrackAt(ref.t), ref.c, clip, info.tpf);
+        if (!cands.length) { lastErr = "qe:V" + (ref.t + 1) + "#" + ref.c; return null; }
+        var notes = [];
+        for (var ci = 0; ci < cands.length && ci < 4; ci++) {
+            var qi = cands[ci], qb = qeNames(qi);
+            try { qi.addVideoEffect(fxObj); } catch (ae) { notes.push("add" + ci + ":" + ae); continue; }
+            clip = seq.videoTracks[ref.t].clips[ref.c];
+            var comps = clip.components;
+            if (comps.numItems > before.length) {
+                for (var i = 0; i < comps.numItems; i++) {
+                    if (i >= before.length || before[i] !== comps[i].matchName + "#" + comps[i].properties.numItems) { lastAdd = { qi: qi, idx: i }; return comps[i]; }
+                }
+                lastAdd = { qi: qi, idx: comps.numItems - 1 };
+                return comps[comps.numItems - 1];
+            }
+            notes.push("c" + ci + ":" + qi.name + "@" + qeTicks(qi) + " " + qb.length + ">" + qi.numComponents);
+            undoOn(qi, qb);
+        }
+        lastErr = "nocomp:" + before.length + " start " + clip.start.ticks + " | " + notes.join(" ; ");
+        return null;
+    }
+
+    function prmByName(comp, name, fxName) {
+        var p = comp.properties;
+        for (var i = 0; i < p.numItems; i++) if (p[i].displayName === name) return p[i];
+        var map = PIDX[fxName];
+        if (map && map[name] !== undefined && map[name] < p.numItems) return p[map[name]];
+        return null;
+    }
+
+    function transformTargets(comp) {
+        var p = comp.properties;
+        return { pos: p[1], uni: p[2], scale: p[3], sw: p[4], rot: p[7], op: p[8], useComp: p[9], shutter: p[10] };
+    }
+
+    function setKeys(prm, keys) {
+        if (!prm || !keys || !keys.length) return;
+        try { prm.setTimeVarying(true); } catch (e) {}
+        for (var i = 0; i < keys.length; i++) {
+            var t = mkTime(keys[i][0]);
+            prm.addKey(t);
+            prm.setValueAtKey(t, keys[i][1], i === keys.length - 1 ? 1 : 0);
+            try { prm.setInterpolationTypeAtKey(t, 0, i === keys.length - 1 ? 1 : 0); } catch (e2) {}
+        }
+    }
+
+    /* repeat a [[f,...]] pattern of length P (frames) until F frames */
+    function loopArr(arr, P, F) {
+        if (!arr) return arr;
+        var out = [];
+        for (var r = 0; r * P <= F; r++) {
+            for (var i = 0; i < arr.length; i++) {
+                if (r > 0 && arr[i][0] === 0) continue;
+                var f = arr[i][0] + r * P;
+                if (f > F) break;
+                var k = arr[i].slice(0); k[0] = f; out.push(k);
+            }
+        }
+        return out;
+    }
+
+    /* p: see presets.js. Uses a NEW Transform effect for all motion; never touches Motion / Opacity. */
+    function applyPreset(p) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var info = seqInfo(seq);
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        var qs = null;
+        try { app.enableQE(); qs = qe.project.getActiveSequence(); } catch (e) {}
+        if (!qs) return "ERR|notf|noqe";
+        var needTF = !!(p.type === "rate" || p.scale || p.pos || p.rot || p.op || p.sw || p.sh || p.sScale);
+        var ph = Number(seq.getPlayerPosition().ticks);
+        var fpsK = info.fps / 30;
+        var pxK = Math.min(info.w, info.h) / 1080;
+        var done = 0, failed = 0, info2 = "", missing = {}, fitted = 0;
+
+        for (var s = 0; s < sel.length; s++) {
+            var ref = sel[s];
+            var clip = ref.clip;
+            var cs = Number(clip.start.ticks), ce = Number(clip.end.ticks), cin = Number(clip.inPoint.ticks);
+            var startT = (p.anchor === "playhead" && ph >= cs && ph < ce) ? ph : cs;
+            startT = cs + Math.round((startT - cs) / info.tpf) * info.tpf;
+            var endT = ce - info.tpf;
+            if (endT <= startT) endT = startT + info.tpf;
+            var src = function (seqT) { return cin + (seqT - cs); };
+
+            /* extra effects first (QE puts new ones on top, so Transform added last ends up on top) */
+            var fxl = p.fx || [];
+            for (var x = 0; x < fxl.length; x++) {
+                var fc = null;
+                try { fc = addFxVerified(seq, ref, info, qs, fxl[x].fx); } catch (ex) { fc = null; }
+                if (!fc) { missing[fxl[x].fx] = 1; continue; }
+                fxl[x]._comp = fc;
+            }
+
+            var tg = null;
+            if (needTF) {
+                var comp = null;
+                try { comp = addFxVerified(seq, ref, info, qs, "Transform"); } catch (e3) { comp = null; }
+                if (!comp || !isTF(comp.matchName)) { failed++; continue; }
+                tg = transformTargets(comp);
+            }
+
+            if (p.type === "rate") {
+                var sec = (endT - startT) / TPS;
+                var big = Math.round(Math.min(100 + p.rate * sec, p.max || 200) * 100) / 100;
+                var v0 = p.dir > 0 ? 100 : big, v1 = p.dir > 0 ? big : 100;
+                try { tg.uni.setValue(true, 1); } catch (e6) {}
+                setKeys(tg.scale, [[src(startT), v0], [src(endT), v1]]);
+                info2 = v0 + "-" + v1;
+                done++;
+                continue;
+            }
+
+            /* time mapping */
+            var A = { scale: p.scale, pos: p.pos, rot: p.rot, op: p.op, sw: p.sw, sh: p.sh };
+            var fxKeys = [];
+            for (x = 0; x < fxl.length; x++) {
+                var ks = fxl[x].keys || [];
+                for (var y = 0; y < ks.length; y++) fxKeys.push({ x: x, name: ks[y][0], arr: ks[y][1] });
+            }
+            var toSeq, nm;
+            if (p.type === "span") {
+                var spanF = (endT - startT) / info.tpf;
+                toSeq = function (f) { return startT + Math.round(f * spanF) * info.tpf; };
+            } else {
+                if (p.type === "loop" && p.period > 0) {
+                    var F = ((endT - startT) / info.tpf) / fpsK;
+                    for (nm in A) A[nm] = loopArr(A[nm], p.period, F);
+                    for (y = 0; y < fxKeys.length; y++) fxKeys[y].arr = loopArr(fxKeys[y].arr, p.period, F);
+                }
+                var lastF = 0;
+                for (nm in A) if (A[nm] && A[nm].length) lastF = Math.max(lastF, A[nm][A[nm].length - 1][0]);
+                for (y = 0; y < fxKeys.length; y++) if (fxKeys[y].arr.length) lastF = Math.max(lastF, fxKeys[y].arr[fxKeys[y].arr.length - 1][0]);
+                var base = startT, fit = 1;
+                if (p.type === "out") {
+                    base = ce - info.tpf - Math.round(lastF * fpsK) * info.tpf;
+                    if (base < cs) base = cs;
+                }
+                /* clip (or the part after the start point) is shorter than the move: squeeze it to fit */
+                var availF = (endT - base) / info.tpf, needF = lastF * fpsK;
+                if (p.type !== "loop" && needF > availF && needF > 0 && availF > 0) { fit = availF / needF; fitted++; }
+                toSeq = function (f) { return base + Math.round(f * fpsK * fit) * info.tpf; };
+            }
+            var conv = function (arr, fn) {
+                var out = [], seen = {};
+                if (!arr) return out;
+                for (var i = 0; i < arr.length; i++) {
+                    var tk = src(toSeq(arr[i][0]));
+                    if (tk > src(ce) - 1) continue;
+                    var v = fn(arr[i]);
+                    if (seen[tk] !== undefined) { out[seen[tk]][1] = v; continue; }
+                    seen[tk] = out.length;
+                    out.push([tk, v]);
+                }
+                return out;
+            };
+            var num = function (k) { return k[1]; };
+            var posFn = p.posToY
+                ? function (k) { return [0.5 + (k[1] * pxK) / info.w, 0.5 + k[2] * (p.posToY / info.h - 0.5)]; }
+                : function (k) { return [0.5 + (k[1] * pxK) / info.w, 0.5 + (k[2] * pxK) / info.h]; };
+
+            if (tg) {
+                var nonUni = !!(A.sw || A.sh);
+                try { tg.uni.setValue(!nonUni, 1); } catch (e6b) {}
+                if (p.sScale && !A.scale && !nonUni) tg.scale.setValue(p.sScale, 1);
+                if (nonUni) {
+                    setKeys(tg.scale, conv(A.sh || A.scale, num));
+                    setKeys(tg.sw, conv(A.sw || A.scale, num));
+                } else {
+                    setKeys(tg.scale, conv(A.scale, num));
+                }
+                if (p.shutter) {
+                    try { tg.useComp.setValue(false, 1); } catch (e7) {}
+                    try { tg.shutter.setValue(p.shutter, 1); } catch (e8) {}
+                }
+                setKeys(tg.pos, conv(A.pos, posFn));
+                setKeys(tg.rot, conv(A.rot, num));
+                setKeys(tg.op, conv(A.op, num));
+            }
+
+            for (x = 0; x < fxl.length; x++) {
+                var c2 = fxl[x]._comp;
+                if (!c2) continue;
+                var st = fxl[x].set || [];
+                for (y = 0; y < st.length; y++) {
+                    var pr = prmByName(c2, st[y][0], fxl[x].fx);
+                    if (pr) { try { pr.setValue(st[y][1], 1); } catch (e9) {} } else missing[fxl[x].fx + ":" + st[y][0]] = 1;
+                }
+            }
+            for (y = 0; y < fxKeys.length; y++) {
+                var c3 = fxl[fxKeys[y].x]._comp;
+                if (!c3) continue;
+                var pr2 = prmByName(c3, fxKeys[y].name, fxl[fxKeys[y].x].fx);
+                if (pr2) setKeys(pr2, conv(fxKeys[y].arr, num)); else missing[fxl[fxKeys[y].x].fx + ":" + fxKeys[y].name] = 1;
+            }
+            /* colour params: [name, [r,g,b]] */
+            for (x = 0; x < fxl.length; x++) {
+                var c5 = fxl[x]._comp, cl5 = fxl[x].color || [];
+                if (!c5) continue;
+                for (y = 0; y < cl5.length; y++) {
+                    var pr5 = prmByName(c5, cl5[y][0], fxl[x].fx);
+                    if (!pr5) { missing[fxl[x].fx + ":" + cl5[y][0]] = 1; continue; }
+                    try { pr5.setColorValue(255, cl5[y][1][0], cl5[y][1][1], cl5[y][1][2], 1); } catch (e10) { missing[fxl[x].fx + ":" + cl5[y][0] + "(color)"] = 1; }
+                }
+            }
+            /* rate keys: value grows linearly per second from start point to clip end */
+            for (x = 0; x < fxl.length; x++) {
+                var c4 = fxl[x]._comp, rt = fxl[x].rate || [];
+                if (!c4) continue;
+                for (y = 0; y < rt.length; y++) {
+                    var pr3 = prmByName(c4, rt[y][0], fxl[x].fx);
+                    if (!pr3) { missing[fxl[x].fx + ":" + rt[y][0]] = 1; continue; }
+                    setKeys(pr3, [[src(startT), 0], [src(endT), Math.round(rt[y][1] * (endT - startT) / TPS * 100) / 100]]);
+                }
+            }
+            for (x = 0; x < fxl.length; x++) fxl[x]._comp = null;
+            done++;
+        }
+        var miss = [];
+        for (var mk in missing) miss.push(mk);
+        if (!done && failed) return "ERR|notf|" + lastErr;
+        return "OK|" + done + "|" + failed + "|" + info2 + "|" + miss.join(",") + "|" + fitted;
+    }
+
+    /* ---------- favourite effects ---------- */
+    function listEffects() {
+        try { app.enableQE(); } catch (e) {}
+        var v = [], a = [];
+        try { v = splitList(qe.project.getVideoEffectList()); } catch (e1) {}
+        try { a = splitList(qe.project.getAudioEffectList()); } catch (e2) {}
+        return "OK|" + v.join("\t") + "|" + a.join("\t");
+    }
+
+    /* o: {n: name, a: 1 for audio} */
+    function addEffect(o) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var info = seqInfo(seq);
+        try { app.enableQE(); } catch (e) {}
+        var qs = qe.project.getActiveSequence();
+        var sel = o.a ? selectedAudio(seq) : selectedClips(seq);
+        if (!sel.length) return o.a ? "ERR|noasel" : "ERR|nosel";
+        var fx = o.a ? getAudioFx(o.n) : getVideoFx(o.n);
+        if (!fx) return "ERR|nofx";
+        var n = 0;
+        for (var s = 0; s < sel.length; s++) {
+            try {
+                if (o.a) {
+                    var qi = qeItemFor(qs.getAudioTrackAt(sel[s].t), sel[s].c, sel[s].clip, info.tpf);
+                    if (qi) { qi.addAudioEffect(fx); n++; }
+                } else {
+                    if (addVideoFxTo(seq, sel[s], info, qs, fx)) n++;
+                }
+            } catch (e2) {}
+        }
+        return "OK|" + n;
+    }
+
+    /* ---------- custom curve baking ---------- */
+    function bez(x1, y1, x2, y2, x) {
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        var lo = 0, hi = 1, t = x;
+        for (var i = 0; i < 40; i++) {
+            t = (lo + hi) / 2;
+            var cx = 3 * (1 - t) * (1 - t) * t * x1 + 3 * (1 - t) * t * t * x2 + t * t * t;
+            if (cx < x) lo = t; else hi = t;
+        }
+        return 3 * (1 - t) * (1 - t) * t * y1 + 3 * (1 - t) * t * t * y2 + t * t * t;
+    }
+
+    function classify(match, pi) {
+        if (match === "AE.ADBE Motion") return pi === 0 ? "pos" : (pi === 1 || pi === 2) ? "scale" : pi === 4 ? "rot" : "other";
+        if (match === "AE.ADBE Opacity") return pi === 0 ? "op" : "skip";
+        if (isTF(match)) return pi === 1 ? "pos" : (pi === 3 || pi === 4) ? "scale" : pi === 7 ? "rot" : pi === 8 ? "op" : "other";
+        return "other";
+    }
+
+    function lerp(a, b, e) {
+        if (typeof a === "number" && typeof b === "number") return a + (b - a) * e;
+        if (a && b && a.length !== undefined && a.length === b.length) {
+            var r = [];
+            for (var i = 0; i < a.length; i++) {
+                if (typeof a[i] !== "number") return null;
+                r.push(a[i] + (b[i] - a[i]) * e);
+            }
+            return r;
+        }
+        return null;
+    }
+
+    function same(a, b) {
+        if (typeof a === "number") return a === b;
+        if (a && b && a.length !== undefined) {
+            for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+            return true;
+        }
+        return true;
+    }
+
+    function readKeys(prm) {
+        var ks = prm.getKeys(), out = [];
+        if (!ks) return out;
+        for (var i = 0; i < ks.length; i++) {
+            var tk = Number(ks[i].ticks);
+            out.push([tk, prm.getValueAtKey(ks[i])]);
+        }
+        out.sort(function (x, y) { return x[0] - y[0]; });
+        return out;
+    }
+
+    function restoreParam(prm, sn) {
+        var keep = {};
+        for (var i = 0; i < sn.orig.length; i++) keep[sn.orig[i][0]] = true;
+        var cur = readKeys(prm);
+        for (var j = 0; j < cur.length; j++) {
+            if (!keep[cur[j][0]]) prm.removeKey(mkTime(cur[j][0]));
+        }
+        for (var k = 0; k < sn.orig.length; k++) {
+            prm.setValueAtKey(mkTime(sn.orig[k][0]), sn.orig[k][1], k === sn.orig.length - 1 ? 1 : 0);
+        }
+    }
+
+    /* o: {x1,y1,x2,y2, props:{pos,scale,rot,op,other}, scope:'all'|'playhead', step} */
+    function applyCurve(o) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var info = seqInfo(seq);
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        var ph = Number(seq.getPlayerPosition().ticks);
+        var step = Math.max(1, o.step || 1) * info.tpf;
+        var clipsDone = 0, segs = 0;
+
+        for (var s = 0; s < sel.length; s++) {
+            var clip = sel[s].clip;
+            var cs = Number(clip.start.ticks), cin = Number(clip.inPoint.ticks);
+            var phSrc = cin + (ph - cs);
+            var touched = false;
+            var comps = clip.components;
+            for (var ci = 0; ci < comps.numItems; ci++) {
+                var comp = comps[ci];
+                var props = comp.properties;
+                for (var pi = 0; pi < props.numItems; pi++) {
+                    var cat = classify(comp.matchName, pi);
+                    if (cat === "skip" || !o.props[cat]) continue;
+                    var prm = props[pi];
+                    var tv = false;
+                    try { tv = prm.isTimeVarying(); } catch (e) {}
+                    if (!tv) continue;
+                    var key = clip.nodeId + "|" + ci + "|" + pi;
+                    var cur = readKeys(prm);
+                    if (cur.length < 2) continue;
+                    var sn = snaps[key];
+                    if (sn && cur.length === sn.baked) {
+                        restoreParam(prm, sn);
+                        cur = readKeys(prm);
+                    } else {
+                        sn = { orig: cur };
+                        snaps[key] = sn;
+                    }
+                    var anchors = sn.orig;
+                    for (var k = 0; k < anchors.length - 1; k++) {
+                        var k0 = anchors[k][0], k1 = anchors[k + 1][0];
+                        var v0 = anchors[k][1], v1 = anchors[k + 1][1];
+                        if (o.scope === "playhead" && !(phSrc >= k0 && phSrc <= k1)) continue;
+                        if (typeof v0 === "boolean" || same(v0, v1)) continue;
+                        if (lerp(v0, v1, 0.5) === null) continue;
+                        var len = k1 - k0;
+                        for (var tk = k0 + step; tk < k1 - info.tpf / 2; tk += step) {
+                            var t = mkTime(tk);
+                            prm.addKey(t);
+                            prm.setValueAtKey(t, lerp(v0, v1, bez(o.x1, o.y1, o.x2, o.y2, (tk - k0) / len)), 0);
+                        }
+                        segs++;
+                        touched = true;
+                    }
+                    sn.baked = prm.getKeys() ? prm.getKeys().length : 0;
+                    try { prm.setValueAtKey(mkTime(anchors[anchors.length - 1][0]), anchors[anchors.length - 1][1], 1); } catch (e2) {}
+                }
+            }
+            if (touched) clipsDone++;
+        }
+        return "OK|" + clipsDone + "|" + segs;
+    }
+
+    function restoreCurve() {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        var n = 0;
+        for (var s = 0; s < sel.length; s++) {
+            var clip = sel[s].clip;
+            var comps = clip.components;
+            for (var ci = 0; ci < comps.numItems; ci++) {
+                var props = comps[ci].properties;
+                for (var pi = 0; pi < props.numItems; pi++) {
+                    var key = clip.nodeId + "|" + ci + "|" + pi;
+                    if (!snaps[key]) continue;
+                    try { restoreParam(props[pi], snaps[key]); n++; } catch (e) {}
+                    delete snaps[key];
+                }
+            }
+        }
+        return "OK|" + n;
+    }
+
+    /* diagnostic dump for remote troubleshooting */
+    function diag() {
+        var o = [];
+        try { o.push("Premiere " + app.version + " build " + app.build); } catch (e) {}
+        try { o.push("locale " + $.locale + " / os " + $.os); } catch (e1) {}
+        o.push("lastErr " + lastErr);
+        try {
+            app.enableQE();
+            var list = splitList(qe.project.getVideoEffectList()), hit = [];
+            for (var i = 0; i < list.length; i++) if (/trans|geometr|\uBCC0\uD615|\uBCC0\uD658/i.test(list[i])) hit.push(list[i]);
+            o.push("fx(" + list.length + "): " + hit.join(" / "));
+            var t1 = null; try { t1 = qe.project.getVideoEffectByName("Transform"); } catch (e2) {}
+            o.push("byName(Transform) " + (t1 ? "ok" : "null"));
+        } catch (e3) { o.push("qe err " + e3); }
+        try {
+            var seq = app.project.activeSequence;
+            o.push("seq " + seq.name + " " + seq.frameSizeHorizontal + "x" + seq.frameSizeVertical);
+            var sel = selectedClips(seq), qs = qe.project.getActiveSequence();
+            for (var s = 0; s < sel.length && s < 3; s++) {
+                var cl = sel[s].clip, cm = [];
+                for (var k = 0; k < cl.components.numItems; k++) cm.push(cl.components[k].matchName);
+                o.push("sel V" + (sel[s].t + 1) + "#" + sel[s].c + " " + cl.name + " start " + cl.start.ticks + " | " + cm.join(","));
+                var qt = qs.getVideoTrackAt(sel[s].t), it = [];
+                for (var q = 0; q < qt.numItems && q < 12; q++) { var x = qt.getItemAt(q); it.push(x.type + ":" + x.name + "@" + qeTicks(x)); }
+                o.push("  qe " + it.join(" ; "));
+            }
+        } catch (e4) { o.push("seq err " + e4); }
+        return o.join("\n");
+    }
+
+    function ping() { return "OK|" + app.version; }
+
+    return { applyPreset: applyPreset, applyCurve: applyCurve, restoreCurve: restoreCurve, listEffects: listEffects, addEffect: addEffect, diag: diag, ping: ping };
+})();
