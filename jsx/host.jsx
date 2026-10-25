@@ -671,5 +671,13 @@ var T0202 = (function () {
 
     function ping() { return "OK|" + app.version; }
 
-    return { applyPreset: applyPreset, applyCurve: applyCurve, restoreCurve: restoreCurve, listEffects: listEffects, addEffect: addEffect, diag: diag, ping: ping };
+    /* never let an exception escape as a bare "EvalScript error": report line + message instead */
+    function safe(fn, name) {
+        return function (a) {
+            try { return fn(a); }
+            catch (e) { lastErr = name + " L" + e.line + " " + e.message; return "ERR|ex|" + name + " L" + e.line + " " + e.message; }
+        };
+    }
+    return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
