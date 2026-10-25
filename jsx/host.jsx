@@ -388,9 +388,10 @@ var T0202 = (function () {
                 return out;
             };
             var num = function (k) { return k[1]; };
-            var posFn = p.posToY
-                ? function (k) { return [0.5 + (k[1] * pxK) / info.w, 0.5 + k[2] * (p.posToY / info.h - 0.5)]; }
-                : function (k) { return [0.5 + (k[1] * pxK) / info.w, 0.5 + (k[2] * pxK) / info.h]; };
+            var posFn = function (k) {
+                if (p.posToY) return [0.5 + (k[1] * pxK) / info.w, 0.5 + k[2] * (p.posToY / info.h - 0.5)];
+                return [0.5 + (k[1] * pxK) / info.w, 0.5 + (k[2] * pxK) / info.h];
+            };
 
             if (tg) {
                 var nonUni = !!(A.sw || A.sh);
