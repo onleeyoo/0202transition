@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>0202Transition</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span>0202<b>Transition</b></div>
+  <nav class="tabs">
+    <button class="tab on" data-tab="preset">프리셋</button>
+    <button class="tab" data-tab="fx">효과</button>
+    <button class="tab" data-tab="curve">커브</button>
+    <button class="tab reload" id="reload" title="패널 새로고침 (수정사항 반영)">↻</button>
+  </nav>
+</header>
+
+<main>
+  <!-- PRESET TAB -->
+  <section id="tab-preset" class="pane on">
+    <div class="card opts">
+      <div class="row">
+        <label>크기</label>
+        <div class="seg" id="sizeStep">
+          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button>
+        </div>
+      </div>
+      <div class="row">
+        <label>빠르기</label>
+        <div class="seg" id="speedStep">
+          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button>
+        </div>
+      </div>
+      <div class="row">
+        <label></label><span class="hint" id="stepHint"></span>
+      </div>
+      <div class="row">
+        <label>시작점</label>
+        <div class="seg" id="anchor">
+          <button data-v="playhead" class="on">재생헤드</button>
+          <button data-v="start">클립 시작</button>
+        </div>
+      </div>
+      <div class="row">
+        <label>모션블러</label>
+        <button class="toggle on" id="blur"><i></i></button>
+        <span class="hint">빠른 움직임에 블러</span>
+      </div>
+    </div>
+    <div id="presetList"></div>
+  </section>
+
+  <!-- FX TAB -->
+  <section id="tab-fx" class="pane">
+    <div class="card">
+      <div class="padHead"><span>즐겨찾기</span><small>클릭: 선택 클립에 추가 · 우클릭: 빼기</small></div>
+      <div class="favGrid" id="favGrid"></div>
+    </div>
+    <div class="card">
+      <div class="padHead"><span>효과 찾기</span><small>☆ 눌러 즐겨찾기</small></div>
+      <input id="fxSearch" class="search" placeholder="효과 이름 검색 (영문)">
+      <div class="fxList" id="fxList"><p class="note">효과 탭을 열면 목록을 불러와요</p></div>
+    </div>
+    <p class="note">오디오 효과(리버브 등)는 타임라인에서 오디오 클립을 선택하고 눌러주세요.</p>
+  </section>
+
+  <!-- CURVE TAB -->
+  <section id="tab-curve" class="pane">
+    <div class="card editor">
+      <canvas id="cv" width="640" height="440"></canvas>
+      <div class="readout" id="readout">cubic-bezier(0.16, 1.00, 0.30, 1.00)</div>
+      <div class="preview"><div class="track"><span id="ball"></span></div></div>
+    </div>
+
+    <div class="card pad">
+      <div class="padHead"><span>커브</span><small>우클릭으로 내 커브 삭제</small></div>
+      <div class="padRow" id="curveRow"></div>
+      <div class="saveRow hidden" id="saveRow">
+        <input id="saveName" maxlength="16" placeholder="커브 이름">
+        <button id="saveOk">저장</button>
+        <button id="saveCancel" class="ghost">취소</button>
+      </div>
+    </div>
+
+    <div class="card opts">
+      <div class="row wrap">
+        <label>적용 대상</label>
+        <div class="chips" id="props">
+          <button data-v="pos" class="on">위치</button>
+          <button data-v="scale" class="on">비율</button>
+          <button data-v="rot" class="on">회전</button>
+          <button data-v="op" class="on">불투명도</button>
+          <button data-v="other">기타 효과</button>
+        </div>
+      </div>
+      <div class="row">
+        <label>범위</label>
+        <div class="seg" id="scope">
+          <button data-v="all" class="on">모든 구간</button>
+          <button data-v="playhead">재생헤드 구간</button>
+        </div>
+      </div>
+      <div class="row">
+        <label>키 간격</label>
+        <div class="seg" id="step">
+          <button data-v="1" class="on">1f</button>
+          <button data-v="2">2f</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="primary" id="applyCurve">선택한 클립에 커브 적용</button>
+    <button class="secondary" id="restoreCurve">원래 키프레임으로 복원</button>
+    <p class="note">선택한 클립의 키프레임 사이를 이 커브로 채워요. 프리셋으로 넣은 것도, 직접 넣은 효과도 다 돼요. 커브만 바꿔서 다시 누르면 바로 교체돼요.</p>
+  </section>
+</main>
+
+<footer id="status">클립을 선택하고 버튼을 누르세요</footer>
+
+<script src="js/presets.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
