@@ -334,7 +334,10 @@ var T0202 = (function () {
             startT = cs + Math.round((startT - cs) / info.tpf) * info.tpf;
             var endT = ce - info.tpf;
             if (endT <= startT) endT = startT + info.tpf;
-            var src = function (seqT) { return cin + (seqT - cs); };
+            /* effect keyframes live in media time: on a speed-changed clip one sequence frame covers `spd` media frames */
+            var spd = 1;
+            try { spd = Math.abs(Number(clip.getSpeed())) || 1; } catch (eSp) { spd = 1; }
+            var src = function (seqT) { return cin + (seqT - cs) * spd; };
 
             /* extra effects first (QE puts new ones on top, so Transform added last ends up on top) */
             var fxl = p.fx || [];
