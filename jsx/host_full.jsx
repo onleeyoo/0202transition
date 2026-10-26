@@ -63,7 +63,8 @@ var T0202 = (function () {
         "Wave Warp": ["Wave Warp", "\uBB3C\uACB0 \uBE44\uD2C0\uAE30"],
         "Tint": ["Tint", "\uC0C9\uC870"],
         "Brightness & Contrast": ["Brightness & Contrast", "\uBC1D\uAE30 \uBC0F \uB300\uBE44"],
-        "ProcAmp": ["ProcAmp"]
+        "ProcAmp": ["ProcAmp"],
+        "Crop": ["Crop", "\uC790\uB974\uAE30"]
     };
 
     /* parameter index fallback when display names are localized */
@@ -74,7 +75,8 @@ var T0202 = (function () {
         "Tint": { "Map Black To": 0, "Map White To": 1, "Amount to Tint": 2 },
         "Brightness & Contrast": { "Brightness": 0, "Contrast": 1 },
         "Gaussian Blur": { "Blurriness": 0 },
-        "ProcAmp": { "Brightness": 0, "Contrast": 1, "Hue": 2, "Saturation": 3 }
+        "ProcAmp": { "Brightness": 0, "Contrast": 1, "Hue": 2, "Saturation": 3 },
+        "Crop": { "Left": 0, "Top": 1, "Right": 2, "Bottom": 3, "Zoom": 4, "Edge Feather": 5 }
     };
 
     function getVideoFx(name) {
@@ -97,7 +99,8 @@ var T0202 = (function () {
         "Tint": [/^tint$/i, /^\uC0C9\uC870$/],
         "Brightness & Contrast": [/brightness/i, /\uBC1D\uAE30/],
         "Gaussian Blur": [/gaussian/i, /\uAC00\uC6B0\uC2DC\uC548/],
-        "ProcAmp": [/procamp/i]
+        "ProcAmp": [/procamp/i],
+        "Crop": [/^crop$/i, /^\uC790\uB974\uAE30$/]
     };
     /* matchName each effect must have once added (null = don't check) */
     var EXPECT = {
@@ -107,7 +110,8 @@ var T0202 = (function () {
         "Wave Warp": /Wave Warp/,
         "Tint": /^AE\.ADBE Tint$/,
         "Brightness & Contrast": /Brightness/,
-        "Gaussian Blur": /Gaussian Blur|Fast Blur/
+        "Gaussian Blur": /Gaussian Blur|Fast Blur/,
+        "Crop": /Crop/i
     };
     var fxOk = {};
     function scanFx(name) {
