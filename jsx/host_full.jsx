@@ -6,6 +6,7 @@ var T0202 = (function () {
     var fxCache = {};
     var lastErr = "";
     var lastAdd = null;
+    var lastReport = "";
 
     function mkTime(ticks) {
         var t = new Time();
@@ -259,6 +260,24 @@ var T0202 = (function () {
         return null;
     }
 
+    /* one-line summary of what landed on a clip, for diag() */
+    function report(ref, clip, tg) {
+        try {
+            var c = clip, cm = [];
+            for (var i = 0; i < c.components.numItems; i++) cm.push(c.components[i].matchName.replace("AE.ADBE ", ""));
+            var r = "V" + (ref.t + 1) + "#" + ref.c + " " + c.name + " in=" + c.inPoint.seconds.toFixed(2) + " st=" + c.start.seconds.toFixed(2) +
+                " spd=" + (c.getSpeed ? c.getSpeed() : "?") + " comps=" + cm.join("/");
+            if (tg) {
+                var nm = ["scale", "pos", "rot", "op", "sw"];
+                for (var j = 0; j < nm.length; j++) {
+                    var k = null; try { k = tg[nm[j]].getKeys(); } catch (e) {}
+                    if (k && k.length) r += " " + nm[j] + ":" + k.length + "@" + k[0].seconds.toFixed(2) + "~" + k[k.length - 1].seconds.toFixed(2);
+                }
+            }
+            lastReport += r + " || ";
+        } catch (e2) { lastReport += "report err " + e2 + " || "; }
+    }
+
     function transformTargets(comp) {
         var p = comp.properties;
         return { pos: p[1], uni: p[2], scale: p[3], sw: p[4], rot: p[7], op: p[8], useComp: p[9], shutter: p[10] };
@@ -305,6 +324,7 @@ var T0202 = (function () {
         var fpsK = info.fps / 30;
         var pxK = Math.min(info.w, info.h) / 1080;
         var done = 0, failed = 0, info2 = "", missing = {}, fitted = 0;
+        lastReport = "";
 
         for (var s = 0; s < sel.length; s++) {
             var ref = sel[s];
@@ -340,6 +360,7 @@ var T0202 = (function () {
                 try { tg.uni.setValue(true, 1); } catch (e6) {}
                 setKeys(tg.scale, [[src(startT), v0], [src(endT), v1]]);
                 info2 = v0 + "-" + v1;
+                report(ref, seq.videoTracks[ref.t].clips[ref.c], tg);
                 done++;
                 continue;
             }
@@ -448,6 +469,7 @@ var T0202 = (function () {
                 }
             }
             for (x = 0; x < fxl.length; x++) fxl[x]._comp = null;
+            report(ref, seq.videoTracks[ref.t].clips[ref.c], tg);
             done++;
         }
         var miss = [];
@@ -646,6 +668,7 @@ var T0202 = (function () {
         try { o.push("Premiere " + app.version + " build " + app.build); } catch (e) {}
         try { o.push("locale " + $.locale + " / os " + $.os); } catch (e1) {}
         o.push("lastErr " + lastErr);
+        o.push("last " + lastReport);
         try {
             app.enableQE();
             var list = splitList(qe.project.getVideoEffectList()), hit = [];
