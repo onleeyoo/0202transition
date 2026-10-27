@@ -507,7 +507,41 @@ var T0202 = (function () {
         var v = [], a = [];
         try { v = splitList(qe.project.getVideoEffectList()); } catch (e1) {}
         try { a = splitList(qe.project.getAudioEffectList()); } catch (e2) {}
-        return "OK|" + v.join("\t") + "|" + a.join("\t");
+        var vt = [], at = [];
+        try { vt = splitList(qe.project.getVideoTransitionList()); } catch (e3) {}
+        try { at = splitList(qe.project.getAudioTransitionList()); } catch (e4) {}
+        return "OK|" + v.join("\t") + "|" + a.join("\t") + "|" + vt.join("\t") + "|" + at.join("\t");
+    }
+    /* transition at the cut nearest the playhead inside each selected clip (start or end), 1 second, centered */
+    function addTransition(o) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var info = seqInfo(seq);
+        try { app.enableQE(); } catch (e) {}
+        var qs = qe.project.getActiveSequence();
+        var au = o.k === "at";
+        var sel = au ? selectedAudio(seq) : selectedClips(seq);
+        if (!sel.length) return au ? "ERR|noasel" : "ERR|nosel";
+        var tr = null;
+        try { tr = au ? qe.project.getAudioTransitionByName(o.n) : qe.project.getVideoTransitionByName(o.n); } catch (e1) {}
+        if (!tr) return "ERR|nofx";
+        var ph = Number(seq.getPlayerPosition().ticks);
+        var fps = Math.round(info.fps);
+        var dur = "00:00:01:00", off = "00:00:00:00";
+        var n = 0, errs = [];
+        for (var s = 0; s < sel.length; s++) {
+            var clip = sel[s].clip, cs = Number(clip.start.ticks), ce = Number(clip.end.ticks);
+            var atStart = Math.abs(ph - cs) <= Math.abs(ph - ce);
+            var qi = null;
+            try { qi = qeItemFor(au ? qs.getAudioTrackAt(sel[s].t) : qs.getVideoTrackAt(sel[s].t), sel[s].c, clip, info.tpf); } catch (e2) {}
+            if (!qi) { errs.push("qe"); continue; }
+            var ok = false;
+            try { qi.addTransition(tr, atStart, dur, off, 0.5, false, true); ok = true; } catch (e3) { errs.push(String(e3)); }
+            if (!ok) { try { qi.addTransition(tr, atStart); ok = true; } catch (e4) { errs.push(String(e4)); } }
+            if (ok) n++;
+        }
+        if (!n && errs.length) lastErr = "transition: " + errs.join(" ; ");
+        return "OK|" + n;
     }
 
     /* o: {n: name, a: 1 for audio} */
@@ -726,5 +760,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
