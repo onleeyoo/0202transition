@@ -53,14 +53,8 @@
 
   <!-- FX TAB -->
   <section id="tab-fx" class="pane">
-    <div class="fxIntro">
-      <b>자주 쓰는 효과를 모아두고 프리미어 효과 패널 대신 쓰세요</b>
-      <span>① 아래 <em>효과 찾기</em>에서 ☆를 누르면 즐겨찾기에 추가</span>
-      <span>② 즐겨찾기를 클릭하면 선택한 클립에 바로 적용</span>
-      <span>③ 즐겨찾기를 우클릭하면 삭제</span>
-    </div>
     <div class="card">
-      <div class="padHead"><span>즐겨찾기</span><small>클릭: 적용 · 우클릭: 삭제</small></div>
+      <div class="padHead"><span>즐겨찾기</span><small>클릭: 적용 · 우클릭: 삭제 버튼</small></div>
       <div class="favGrid" id="favGrid"></div>
     </div>
     <div class="card">
@@ -69,6 +63,14 @@
       <div class="fxList" id="fxList"><p class="note">효과 탭을 열면 목록을 불러와요</p></div>
     </div>
     <p class="note">오디오 효과(리버브 등)는 타임라인에서 오디오 클립을 선택하고 눌러주세요.</p>
+    <div class="fxIntro" id="fxIntro">
+      <button class="fxIntroX" id="fxIntroClose" title="닫기">✕</button>
+      <b>자주 쓰는 효과를 모아두고 프리미어 효과 패널 대신 쓰세요</b>
+      <span>① 위 <em>효과 찾기</em>에서 ☆를 누르면 즐겨찾기에 추가</span>
+      <span>② 즐겨찾기를 클릭하면 선택한 클립에 바로 적용</span>
+      <span>③ 즐겨찾기를 우클릭하면 삭제 버튼이 떠요</span>
+      <button class="fxIntroNever" id="fxIntroNever">다시 보지 않기</button>
+    </div>
   </section>
 
   <!-- CURVE TAB -->
