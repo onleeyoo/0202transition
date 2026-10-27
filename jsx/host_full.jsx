@@ -223,9 +223,24 @@ var T0202 = (function () {
 
     function isTF(m) { return m === "AE.ADBE Geometry" || m === "AE.ADBE Geometry2"; }
 
+    /* signature of every component on the clip. matchName alone is not enough: a second Transform added next to the
+       first one has the same name and param count, so the diff used to hand back the OLD Transform and the new keys
+       overwrote the previous effect. Include keyframe counts / values so an untouched new effect always differs. */
     function compSig(clip) {
         var r = [], comps = clip.components;
-        for (var i = 0; i < comps.numItems; i++) r.push(comps[i].matchName + "#" + comps[i].properties.numItems);
+        for (var i = 0; i < comps.numItems; i++) {
+            var c = comps[i], sig = c.matchName + "#" + c.properties.numItems;
+            try {
+                var n = Math.min(c.properties.numItems, 12);
+                for (var j = 0; j < n; j++) {
+                    var pr = c.properties[j], t = "";
+                    try { if (pr.isTimeVarying()) { var ks = pr.getKeys(); t = "k" + (ks ? ks.length : 0) + ":" + (ks && ks.length ? ks[0].ticks : ""); } } catch (e1) {}
+                    if (!t) { try { var v = pr.getValue(); t = (typeof v === "number") ? String(Math.round(v * 1000) / 1000) : String(v); } catch (e2) { t = "?"; } }
+                    sig += "|" + t;
+                }
+            } catch (e) {}
+            r.push(sig);
+        }
         return r;
     }
 
@@ -243,8 +258,9 @@ var T0202 = (function () {
             clip = seq.videoTracks[ref.t].clips[ref.c];
             var comps = clip.components;
             if (comps.numItems > before.length) {
+                var after = compSig(clip);
                 for (var i = 0; i < comps.numItems; i++) {
-                    if (i >= before.length || before[i] !== comps[i].matchName + "#" + comps[i].properties.numItems) { lastAdd = { qi: qi, idx: i }; return comps[i]; }
+                    if (i >= before.length || before[i] !== after[i]) { lastAdd = { qi: qi, idx: i }; return comps[i]; }
                 }
                 lastAdd = { qi: qi, idx: comps.numItems - 1 };
                 return comps[comps.numItems - 1];
