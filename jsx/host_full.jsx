@@ -315,7 +315,7 @@ var T0202 = (function () {
 
     function transformTargets(comp) {
         var p = comp.properties;
-        return { anchor: p[0], pos: p[1], uni: p[2], scale: p[3], sw: p[4], rot: p[7], op: p[8], useComp: p[9], shutter: p[10] };
+        return { anchor: p[0], pos: p[1], uni: p[2], scale: p[3], sw: p[4], rot: p[7], op: p[8], useComp: p[9], shutter: p[10], sampling: p[11] };
     }
 
     function setKeys(prm, keys) {
@@ -463,6 +463,11 @@ var T0202 = (function () {
         }
         return null;
     }
+    /* snap a normalized point to a whole pixel of the sequence frame (no half-pixel shimmer on slow zooms) */
+    function snapPt(pt, info) {
+        return [Math.round(pt[0] * info.w) / info.w, Math.round(pt[1] * info.h) / info.h];
+    }
+    function bicubic(t) { try { if (t.sampling) t.sampling.setValue(1, 1); } catch (e) {} }
     function shiftPos(pr, dx, dy) {
         var keyed = false;
         try { keyed = pr.isTimeVarying(); } catch (e) {}
@@ -483,7 +488,7 @@ var T0202 = (function () {
         if (!sel.length) return "ERR|nosel";
         var info = seqInfo(seq), qs = null;
         try { app.enableQE(); qs = qe.project.getActiveSequence(); } catch (eq) {}
-        var moved = 0, made = 0, pt = [o.x, o.y];
+        var moved = 0, made = 0, pt = snapPt([o.x, o.y], info);
         for (var k = 0; k < sel.length; k++) {
             var clip = seq.videoTracks[sel[k].t].clips[sel[k].c], comps = clip.components, hit = 0;
             for (var i = 0; i < comps.numItems; i++) {
@@ -494,6 +499,7 @@ var T0202 = (function () {
                     var a0 = t.anchor.getValue(), dx = pt[0] - Number(a0[0]), dy = pt[1] - Number(a0[1]);
                     t.anchor.setValue(pt, 1);
                     shiftPos(t.pos, dx, dy);
+                    bicubic(t);
                     hit++;
                 } catch (e3) {}
             }
@@ -502,7 +508,7 @@ var T0202 = (function () {
             if (qs) { try { cen = addFxVerified(seq, sel[k], info, qs, "Transform"); } catch (e4) { cen = null; } }
             if (cen && isTF(cen.matchName)) {
                 var tt = transformTargets(cen);
-                try { tt.anchor.setValue(pt, 1); tt.pos.setValue(pt, 1); made++; } catch (e5) {}
+                try { tt.anchor.setValue(pt, 1); tt.pos.setValue(pt, 1); bicubic(tt); made++; } catch (e5) {}
             }
         }
         return "OK|" + moved + "|" + made;
@@ -552,7 +558,7 @@ var T0202 = (function () {
                 /* zoom / quick zoom: write into the centre Transform left by the picker, keeping its centre */
                 /* a centre Transform left by the picker is reused by ANY Transform preset, keeping its centre */
                 var cenUsed = null;
-                try { cenUsed = findCentreTF(seq.videoTracks[ref.t].clips[ref.c]); } catch (eC) { cenUsed = null; }
+                if (p.centre) { try { cenUsed = findCentreTF(seq.videoTracks[ref.t].clips[ref.c]); } catch (eC) { cenUsed = null; } }
                 comp = cenUsed;
                 if (!comp) { try { comp = addFxVerified(seq, ref, info, qs, "Transform"); } catch (e3) { comp = null; } }
                 if (!comp || !isTF(comp.matchName)) { failed++; continue; }
@@ -561,9 +567,10 @@ var T0202 = (function () {
                 if (cenUsed) { try { var av0 = tg.anchor.getValue(); cx = Number(av0[0]); cy = Number(av0[1]); } catch (eAv) {} }
                 else {
                     /* new Transform on a clip whose other Transforms were re-centred: pivot around the same point */
-                    var cc = pickedCentre(seq.videoTracks[ref.t].clips[ref.c], comp);
+                    var cc = p.centre ? pickedCentre(seq.videoTracks[ref.t].clips[ref.c], comp) : null;
                     if (cc) { cx = cc[0]; cy = cc[1]; try { tg.anchor.setValue([cx, cy], 1); tg.pos.setValue([cx, cy], 1); } catch (eCc) {} }
                 }
+                if (Math.abs(cx - 0.5) > 1e-4 || Math.abs(cy - 0.5) > 1e-4) bicubic(tg);
             }
 
             if (p.type === "rate") {
