@@ -315,7 +315,7 @@ var T0202 = (function () {
 
     function transformTargets(comp) {
         var p = comp.properties;
-        return { pos: p[1], uni: p[2], scale: p[3], sw: p[4], rot: p[7], op: p[8], useComp: p[9], shutter: p[10] };
+        return { anchor: p[0], pos: p[1], uni: p[2], scale: p[3], sw: p[4], rot: p[7], op: p[8], useComp: p[9], shutter: p[10] };
     }
 
     function setKeys(prm, keys) {
@@ -402,6 +402,112 @@ var T0202 = (function () {
         return "OK|" + worst;
     }
 
+    /* current composite frame at the playhead -> PNG (for picking a zoom centre in the panel) */
+    function grabFrame() {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        app.enableQE();
+        var qs = qe.project.getActiveSequence();
+        var dir = new Folder(Folder.temp.fsName + "/0202Transition"); if (!dir.exists) dir.create();
+        /* leftovers from earlier grabs / text-band measurements never pile up */
+        try { var old = dir.getFiles(function (x) { return x instanceof File && /^(frame|band)_.*\.png$/.test(x.name); }); for (var j = 0; j < old.length; j++) { try { old[j].remove(); } catch (eR) {} } } catch (eL) {}
+        var f = dir.fsName + "/frame_" + new Date().getTime();
+        var ok = false;
+        try { ok = qs.exportFramePNG(qs.CTI.timecode, f); } catch (e) { ok = false; }
+        if (!ok) return "ERR|frame";
+        return "OK|" + seq.frameSizeHorizontal + "|" + seq.frameSizeVertical + "|" + f + ".png";
+    }
+    function selCount() {
+        var seq = app.project.activeSequence;
+        if (!seq) return "OK|0";
+        var n = 0;
+        try { var g = seq.getSelection(); n = g ? g.length : 0; } catch (e) { n = selectedClips(seq).length; }
+        return "OK|" + n;
+    }
+    function tfKeyed(t) {
+        var ks = [t.anchor, t.pos, t.scale, t.sw, t.rot, t.op];
+        for (var i = 0; i < ks.length; i++) { try { if (ks[i] && ks[i].isTimeVarying()) return true; } catch (e) {} }
+        return false;
+    }
+    function samePt(a, b) { try { return Math.abs(a[0] - b[0]) < 1e-4 && Math.abs(a[1] - b[1]) < 1e-4; } catch (e) { return false; } }
+    /* a "centre" Transform = un-keyed Transform whose anchor equals its position (left by the centre picker) */
+    function findCentreTF(clip) {
+        var comps = clip.components;
+        for (var i = 0; i < comps.numItems; i++) {
+            var c = comps[i];
+            if (!isTF(c.matchName)) continue;
+            var t = transformTargets(c);
+            if (tfKeyed(t)) continue;
+            var av = null, pv = null;
+            try { av = t.anchor.getValue(); pv = t.pos.getValue(); } catch (e) {}
+            var sc = 100, ro = 0, op = 100;
+            try { sc = Number(t.scale.getValue()); ro = Number(t.rot.getValue()); op = Number(t.op.getValue()); } catch (e2) {}
+            /* only a pure centre (no scale / rotation / fade of its own), so e.g. a punch-cut Transform is never reused */
+            if (av && pv && samePt(av, pv) && Math.abs(sc - 100) < 0.01 && Math.abs(ro) < 0.01 && Math.abs(op - 100) < 0.01) return c;
+        }
+        return null;
+    }
+    /* centre picker: zooms already on the clip move to the point; a clip without a zoom gets a centre Transform
+       that the next zoom / quick zoom reuses (its keys are written into it) */
+    /* anchor of the first Transform (other than `skip`) that was moved off the clip centre by the picker */
+    function pickedCentre(clip, skip) {
+        var comps = clip.components;
+        for (var i = 0; i < comps.numItems; i++) {
+            var c = comps[i];
+            if (!isTF(c.matchName)) continue;
+            if (skip && c.properties.numItems && skip.properties.numItems && c === skip) continue;
+            try {
+                var av = transformTargets(c).anchor.getValue();
+                if (Math.abs(Number(av[0]) - 0.5) > 1e-4 || Math.abs(Number(av[1]) - 0.5) > 1e-4) return [Number(av[0]), Number(av[1])];
+            } catch (e) {}
+        }
+        return null;
+    }
+    function shiftPos(pr, dx, dy) {
+        var keyed = false;
+        try { keyed = pr.isTimeVarying(); } catch (e) {}
+        if (!keyed) { var v = pr.getValue(); pr.setValue([Number(v[0]) + dx, Number(v[1]) + dy], 1); return; }
+        var ks = pr.getKeys() || [];
+        for (var i = 0; i < ks.length; i++) {
+            var kv = pr.getValueAtKey(ks[i]);
+            pr.setValueAtKey(ks[i], [Number(kv[0]) + dx, Number(kv[1]) + dy], 1);
+        }
+    }
+    /* centre picker: every Transform on the selected clips pivots around the point (anchor -> point, position shifted
+       by the same amount so motion paths are kept). A clip with no Transform gets a centre Transform that the next
+       preset writes into. */
+    function setZoomAt(o) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        var info = seqInfo(seq), qs = null;
+        try { app.enableQE(); qs = qe.project.getActiveSequence(); } catch (eq) {}
+        var moved = 0, made = 0, pt = [o.x, o.y];
+        for (var k = 0; k < sel.length; k++) {
+            var clip = seq.videoTracks[sel[k].t].clips[sel[k].c], comps = clip.components, hit = 0;
+            for (var i = 0; i < comps.numItems; i++) {
+                var c = comps[i];
+                if (!isTF(c.matchName)) continue;
+                var t = transformTargets(c);
+                try {
+                    var a0 = t.anchor.getValue(), dx = pt[0] - Number(a0[0]), dy = pt[1] - Number(a0[1]);
+                    t.anchor.setValue(pt, 1);
+                    shiftPos(t.pos, dx, dy);
+                    hit++;
+                } catch (e3) {}
+            }
+            if (hit) { moved += hit; continue; }
+            var cen = null;
+            if (qs) { try { cen = addFxVerified(seq, sel[k], info, qs, "Transform"); } catch (e4) { cen = null; } }
+            if (cen && isTF(cen.matchName)) {
+                var tt = transformTargets(cen);
+                try { tt.anchor.setValue(pt, 1); tt.pos.setValue(pt, 1); made++; } catch (e5) {}
+            }
+        }
+        return "OK|" + moved + "|" + made;
+    }
+
     function applyPreset(p) {
         var seq = app.project.activeSequence;
         if (!seq) return "ERR|noseq";
@@ -440,12 +546,24 @@ var T0202 = (function () {
                 fxl[x]._comp = fc;
             }
 
-            var tg = null;
+            var tg = null, cx = 0.5, cy = 0.5;
             if (needTF) {
                 var comp = null;
-                try { comp = addFxVerified(seq, ref, info, qs, "Transform"); } catch (e3) { comp = null; }
+                /* zoom / quick zoom: write into the centre Transform left by the picker, keeping its centre */
+                /* a centre Transform left by the picker is reused by ANY Transform preset, keeping its centre */
+                var cenUsed = null;
+                try { cenUsed = findCentreTF(seq.videoTracks[ref.t].clips[ref.c]); } catch (eC) { cenUsed = null; }
+                comp = cenUsed;
+                if (!comp) { try { comp = addFxVerified(seq, ref, info, qs, "Transform"); } catch (e3) { comp = null; } }
                 if (!comp || !isTF(comp.matchName)) { failed++; continue; }
                 tg = transformTargets(comp);
+                cx = 0.5; cy = 0.5;
+                if (cenUsed) { try { var av0 = tg.anchor.getValue(); cx = Number(av0[0]); cy = Number(av0[1]); } catch (eAv) {} }
+                else {
+                    /* new Transform on a clip whose other Transforms were re-centred: pivot around the same point */
+                    var cc = pickedCentre(seq.videoTracks[ref.t].clips[ref.c], comp);
+                    if (cc) { cx = cc[0]; cy = cc[1]; try { tg.anchor.setValue([cx, cy], 1); tg.pos.setValue([cx, cy], 1); } catch (eCc) {} }
+                }
             }
 
             if (p.type === "rate") {
@@ -514,8 +632,9 @@ var T0202 = (function () {
             };
             var num = function (k) { return k[1]; };
             var posFn = function (k) {
-                if (p.posToY) return [0.5 + (k[1] * pxK) / info.w, 0.5 + k[2] * (p.posToY / info.h - 0.5)];
-                return [0.5 + (k[1] * pxK) / info.w, 0.5 + (k[2] * pxK) / info.h];
+                /* offsets are relative to the clip centre - or to the picked centre (anchor = position = that point) */
+                if (p.posToY) return [cx + (k[1] * pxK) / info.w, cy + k[2] * (p.posToY / info.h - 0.5)];
+                return [cx + (k[1] * pxK) / info.w, cy + (k[2] * pxK) / info.h];
             };
 
             if (tg) {
@@ -843,5 +962,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), setZoomAt: safe(setZoomAt, "setZoomAt"), selCount: safe(selCount, "selCount"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();

@@ -18,6 +18,8 @@
 
 <div id="presetTop">
     <div class="card opts stickyOpts">
+     <div class="optGrid">
+      <div class="optCol">
       <div class="row">
         <label>강도</label>
         <div class="seg" id="sizeStep">
@@ -33,11 +35,13 @@
       <div class="row">
         <label></label><span class="hint" id="stepHint"></span>
       </div>
+      </div>
+      <div class="optCol">
       <div class="row">
         <label>시작점</label>
         <div class="seg" id="anchor">
-          <button data-v="playhead" class="on">재생헤드</button>
           <button data-v="start">클립 시작</button>
+          <button data-v="playhead" class="on">재생헤드</button>
         </div>
       </div>
       <div class="row">
@@ -45,6 +49,12 @@
         <button class="toggle on" id="blur"><i></i></button>
         <span class="hint">빠른 움직임에 블러</span>
       </div>
+      <div class="row hidden" id="zaRow">
+        <label>중심점</label>
+        <button class="zaBtn" id="zaPick" title="선택한 클립의 효과 중심점을 화면에서 지정"><svg class="apIcon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 0.8V3.6M8 12.4V15.2M0.8 8H3.6M12.4 8H15.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>화면에서 지정</span></button><span class="hint" id="zaInfo"></span>
+      </div>
+      </div>
+     </div>
     </div>
 </div>
 <main>
@@ -119,6 +129,13 @@
   </section>
 </main>
 
+<div id="zaModal" class="zaModal hidden">
+  <div class="zaBox">
+    <div class="zaHead"><b>중심점 바꾸기</b><span>점을 드래그하거나 클릭하세요 · 선택한 클립의 효과가 이 지점을 중심으로 커지고 돌고 움직여요 · 효과를 넣기 전에 찍어도 돼요</span></div>
+    <div class="zaFrame" id="zaFrame"><img id="zaImg" alt=""><i id="zaMark"></i></div>
+    <div class="zaFoot"><button id="zaCenter" class="ghost">가운데로</button><button id="zaDone" class="primary">완료</button></div>
+  </div>
+</div>
 <footer id="status">클립을 선택하고 버튼을 누르세요</footer>
 
 <script src="js/presets.js"></script>
