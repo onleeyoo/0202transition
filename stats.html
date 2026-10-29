@@ -17,10 +17,13 @@
   button { background:var(--acc); color:#111; border:0; border-radius:8px; padding:10px 16px; font-weight:700; cursor:pointer; }
   button.ghost { background:transparent; color:var(--mut); border:1px solid var(--line); font-weight:500; padding:6px 10px; font-size:12px; }
   .kpis { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
+  @media (min-width: 601px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
   @media (max-width: 600px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
   .kpi { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
   .kpi b { display:block; font-size:28px; font-variant-numeric: tabular-nums; }
   .kpi span { color:var(--mut); font-size:12px; }
+  .kpi.live b { color:#7fe3a0; }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#7fe3a0; margin-right:5px; vertical-align:1px; box-shadow:0 0 6px #7fe3a0; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:12px; }
   .card h2 { font-size:14px; margin:0 0 12px; display:flex; gap:12px; align-items:center; }
   .lg { font-size:11px; color:var(--mut); font-weight:400; display:flex; gap:10px; }
@@ -51,10 +54,22 @@
   <div id="msg" class="err"></div>
   <div id="dash" style="display:none">
     <div class="kpis">
+      <div class="kpi live"><b id="k-online">-</b><span><i class="dot"></i>지금 접속 중 (10분)</span></div>
+      <div class="kpi"><b id="k-peak">-</b><span>오늘 최대 동시 접속</span></div>
+      <div class="kpi"><b id="k-topens">-</b><span>오늘 접속 수</span></div>
+      <div class="kpi"><b id="k-opens">-</b><span>누적 접속 수</span></div>
       <div class="kpi"><b id="k-today">-</b><span>오늘 사용자</span></div>
       <div class="kpi"><b id="k-d7">-</b><span>최근 7일 사용자</span></div>
       <div class="kpi"><b id="k-d30">-</b><span>최근 30일 사용자</span></div>
       <div class="kpi"><b id="k-total">-</b><span>총 설치 수</span></div>
+    </div>
+    <div class="card">
+      <h2>오늘 시간대별 접속자 <span class="lg" id="peakNote"></span></h2>
+      <div id="hours"></div>
+    </div>
+    <div class="card">
+      <h2>일별 접속 수 (30일)</h2>
+      <div id="opensChart"></div>
     </div>
     <div class="card">
       <h2>일별 사용자 (30일) <span class="lg"><span><i style="background:var(--acc)"></i>사용자</span><span><i style="background:var(--new)"></i>신규 설치</span></span></h2>
@@ -75,8 +90,8 @@
   function getKey() { try { return localStorage.getItem(LS); } catch (e) { return null; } }
   function setKey(k) { try { if (k) localStorage.setItem(LS, k); else localStorage.removeItem(LS); } catch (e) {} }
   function showLogin(m) { $("login").style.display = "flex"; $("dash").style.display = "none"; $("logout").style.display = "none"; $("msg").textContent = m || ""; }
-  function load(k) {
-    $("msg").textContent = "불러오는 중…";
+  function load(k, quiet) {
+    if (!quiet) $("msg").textContent = "불러오는 중…";
     fetch(SB_URL + "/rest/v1/rpc/t0202_stats", { method: "POST", headers: { "Content-Type": "application/json", apikey: SB_KEY, Authorization: "Bearer " + SB_KEY }, body: JSON.stringify({ p_key: k }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
@@ -92,8 +107,14 @@
   }
   function render(d) {
     $("login").style.display = "none"; $("dash").style.display = "block"; $("logout").style.display = "inline-block"; $("msg").textContent = "";
+    var peak = 0, peakH = -1; (d.hours || []).forEach(function (x) { if (x.n > peak) { peak = x.n; peakH = x.h; } });
+    $("k-online").textContent = d.online; $("k-peak").textContent = peak; $("k-topens").textContent = d.todayOpens; $("k-opens").textContent = d.opens;
+    $("peakNote").textContent = peakH >= 0 ? "최대 " + peak + "명 · " + peakH + "시" : "";
+    var nowH = Number(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul", hour: "numeric", hour12: false })) % 24;
+    $("hours").innerHTML = barChart((d.hours || []).map(function (x) { return { label: x.h + "시", v: x.n, tip: x.h + "시 · " + x.n + "명", dim: x.h > nowH }; }), "#b78cf0", 4);
+    $("opensChart").innerHTML = barChart(d.daily.map(function (x) { return { label: x.day.slice(5).replace("-", "/"), v: x.opens || 0, tip: x.day + " · 접속 " + (x.opens || 0) + "회" }; }), "#7fe3a0", 5);
     $("k-today").textContent = d.today; $("k-d7").textContent = d.d7; $("k-d30").textContent = d.d30; $("k-total").textContent = d.total;
-    $("opens").textContent = "누적 패널 실행 " + d.opens + "회 · " + new Date().toLocaleString("ko-KR") + " 기준";
+    $("opens").textContent = new Date().toLocaleString("ko-KR") + " 기준 · 1분마다 자동 새로고침";
     bars($("vers"), d.versions.map(function (x) { return { v: x.v ? "v" + x.v : "?", n: x.n }; }));
     bars($("hosts"), d.hosts);
     var W = 820, H = 200, pl = 28, pb = 22, n = d.daily.length, max = 1;
@@ -113,6 +134,26 @@
     $("chart").onmousemove = function (e) { var t = e.target.getAttribute && e.target.getAttribute("data-t"); if (!t) { tip.style.display = "none"; return; } tip.textContent = t; tip.style.display = "block"; tip.style.left = (e.clientX + 12) + "px"; tip.style.top = (e.clientY - 28) + "px"; };
     $("chart").onmouseleave = function () { tip.style.display = "none"; };
   }
+  function barChart(rows, color, every) {
+    var W = 820, H = 170, pl = 30, pb = 22, n = rows.length, max = 1;
+    rows.forEach(function (r) { if (r.v > max) max = r.v; });
+    var step = Math.max(1, Math.ceil(max / 4)); max = step * 4;
+    var bw = (W - pl) / n, s = '<svg viewBox="0 0 ' + W + " " + H + '">';
+    for (var g = 0; g <= 4; g++) { var y = (H - pb) - (H - pb - 8) * g / 4; s += '<line x1="' + pl + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="#2c2c32"/><text x="' + (pl - 6) + '" y="' + (y + 4) + '" fill="#8b8b96" font-size="10" text-anchor="end">' + step * g + "</text>"; }
+    rows.forEach(function (r, i) {
+      var x0 = pl + i * bw, h = (H - pb - 8) * r.v / max;
+      s += '<rect data-t="' + r.tip + '" x="' + x0 + '" y="8" width="' + bw + '" height="' + (H - pb - 8) + '" fill="transparent"/>';
+      s += '<rect x="' + (x0 + bw * 0.15) + '" y="' + (H - pb - h) + '" width="' + (bw * 0.7) + '" height="' + h + '" rx="2" fill="' + color + '" opacity="' + (r.dim ? 0.25 : 1) + '" pointer-events="none"/>';
+      if (i % every === 0 || i === n - 1) s += '<text x="' + (x0 + bw / 2) + '" y="' + (H - 6) + '" fill="#8b8b96" font-size="10" text-anchor="middle">' + r.label + "</text>";
+    });
+    return s + "</svg>";
+  }
+  document.addEventListener("mousemove", function (e) {
+    var tip = $("tip"), t = e.target.getAttribute && e.target.getAttribute("data-t");
+    if (!t) { tip.style.display = "none"; return; }
+    tip.textContent = t; tip.style.display = "block"; tip.style.left = (e.clientX + 12) + "px"; tip.style.top = (e.clientY - 28) + "px";
+  });
+  setInterval(function () { var k = getKey(); if (k && $("dash").style.display !== "none") load(k, true); }, 60000);
   $("go").onclick = function () { var k = $("key").value.trim(); if (k) load(k); };
   $("key").onkeydown = function (e) { if (e.key === "Enter") $("go").onclick(); };
   $("logout").onclick = function () { setKey(null); showLogin(); };
