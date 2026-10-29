@@ -63,18 +63,20 @@ var T0202 = (function () {
         "Wave Warp": ["Wave Warp", "\uBB3C\uACB0 \uBE44\uD2C0\uAE30"],
         "Tint": ["Tint", "\uC0C9\uC870"],
         "Brightness & Contrast": ["Brightness & Contrast", "\uBC1D\uAE30 \uBC0F \uB300\uBE44"],
-        "ProcAmp": ["ProcAmp"],
+        "ProcAmp": ["ProcAmp", "\uBE44\uB514\uC624 \uD504\uB85C\uC138\uC2A4 \uC570\uD504"],
         "Crop": ["Crop", "\uC790\uB974\uAE30"],
-        "Ramp": ["Ramp", "\uADF8\uB808\uC774\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uB7A8\uD504"],
+        "Ramp": ["Ramp", "\uADF8\uB77C\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uADF8\uB808\uC774\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uB7A8\uD504"],
         "Alpha Adjust": ["Alpha Adjust", "\uC54C\uD30C \uC870\uC815"],
-        "Track Matte Key": ["Track Matte Key", "\uD2B8\uB799 \uB9E4\uD2B8 \uD0A4"]
+        "Track Matte Key": ["Track Matte Key", "\uD2B8\uB799 \uB9E4\uD2B8 \uD0A4"],
+        "VR Chromatic Aberrations": ["VR Chromatic Aberrations", "VR \uC0C9\uC218\uCC28"],
+        "Alpha Glow": ["Alpha Glow", "\uC54C\uD30C \uAD11\uC120", "\uC54C\uD30C \uAE00\uB85C\uC6B0"]
     };
 
     /* parameter index fallback when display names are localized */
     var PIDX = {
         "Turbulent Displace": { "Amount": 1, "Size": 2, "Offset (Turbulence)": 3, "Complexity": 4, "Evolution": 5, "Cycle Evolution": 7, "Cycle (in Revolutions)": 8, "Random Seed": 9 },
         "Posterize Time": { "Frame Rate": 0 },
-        "Wave Warp": { "Wave Height": 1, "Wave Width": 2, "Direction": 3, "Wave Speed": 4, "Pinning": 5, "Phase": 6 },
+        "Wave Warp": { "Wave Type": 0, "Wave Height": 1, "Wave Width": 2, "Direction": 3, "Wave Speed": 4, "Pinning": 5, "Phase": 6 },
         "Tint": { "Map Black To": 0, "Map White To": 1, "Amount to Tint": 2 },
         "Brightness & Contrast": { "Brightness": 0, "Contrast": 1 },
         "Gaussian Blur": { "Blurriness": 0 },
@@ -82,7 +84,9 @@ var T0202 = (function () {
         "Crop": { "Left": 0, "Top": 1, "Right": 2, "Bottom": 3, "Zoom": 4, "Edge Feather": 5 },
         "Ramp": { "Start of Ramp": 0, "Start Color": 1, "End of Ramp": 2, "End Color": 3, "Ramp Shape": 4 },
         "Alpha Adjust": { "Opacity": 0, "Ignore Alpha": 1, "Invert Alpha": 2, "Mask Only": 3 },
-        "Track Matte Key": { "Matte": 0, "Composite Using": 1, "Reverse": 2 }
+        "Track Matte Key": { "Matte": 0, "Composite Using": 1, "Reverse": 2 },
+        "VR Chromatic Aberrations": { "Aberration (Red)": 5, "Aberration (Green)": 6, "Aberration (Blue)": 7 },
+        "Alpha Glow": { "Glow": 0, "Brightness": 1, "Start Color": 2, "Use End Color": 3, "End Color": 4, "Fade Out": 5 }
     };
 
     function getVideoFx(name) {
@@ -105,11 +109,13 @@ var T0202 = (function () {
         "Tint": [/^tint$/i, /^\uC0C9\uC870$/],
         "Brightness & Contrast": [/brightness/i, /\uBC1D\uAE30/],
         "Gaussian Blur": [/gaussian/i, /\uAC00\uC6B0\uC2DC\uC548/],
-        "ProcAmp": [/procamp/i],
+        "ProcAmp": [/procamp/i, /\uD504\uB85C\uC138\uC2A4 \uC570\uD504/],
         "Crop": [/^crop$/i, /^\uC790\uB974\uAE30$/],
         "Ramp": [/^ramp$/i, /\uB7A8\uD504/],
         "Alpha Adjust": [/alpha adjust/i, /\uC54C\uD30C \uC870\uC815/],
-        "Track Matte Key": [/track matte/i, /\uD2B8\uB799 \uB9E4\uD2B8/]
+        "Track Matte Key": [/track matte/i, /\uD2B8\uB799 \uB9E4\uD2B8/],
+        "VR Chromatic Aberrations": [/chromatic aberration/i, /\uC0C9\s*\uC218\uCC28/, /chromatic/i],
+        "Alpha Glow": [/alpha glow/i, /\uC54C\uD30C \uAD11/, /\uC54C\uD30C \uAE00\uB85C/]
     };
     /* matchName each effect must have once added (null = don't check) */
     var EXPECT = {
@@ -122,7 +128,9 @@ var T0202 = (function () {
         "Gaussian Blur": /Gaussian Blur|Fast Blur/,
         "Crop": /Crop/i,
         "Ramp": /Ramp/,
-        "Track Matte Key": /Track Matte/
+        "Track Matte Key": /Track Matte/,
+        "VR Chromatic Aberrations": /Chromatic/i,
+        "Alpha Glow": /Alpha Glow|Glow/
     };
     var fxOk = {};
     function scanFx(name) {
@@ -694,6 +702,26 @@ var T0202 = (function () {
                 var availF = (endT - base) / info.tpf, needF = lastF * fpsK;
                 if (p.type !== "loop" && !p.noFit && needF > availF && needF > 0 && availF > 0) { fit = availF / needF; fitted++; }
                 toSeq = function (f) { return base + Math.round(f * fpsK * fit) * info.tpf; };
+            }
+            /* repeating keys (e.g. a twinkle) from lfrom to the clip end; never part of the fit/squeeze above */
+            if (p.type !== "span") {
+                var Fend = ((endT - startT) / info.tpf) / (fpsK * (fit || 1));
+                for (x = 0; x < fxl.length; x++) {
+                    var lk = fxl[x].lkeys || [], lp = Number(fxl[x].lper) || 0, l0 = Number(fxl[x].lfrom) || 0;
+                    if (!lk.length || lp <= 0) continue;
+                    for (y = 0; y < lk.length; y++) {
+                        var cyc = loopArr(lk[y][1], lp, Fend - l0), gen = [];
+                        for (var g2 = 0; g2 < cyc.length; g2++) gen.push([cyc[g2][0] + l0, cyc[g2][1]]);
+                        var hitK = -1;
+                        for (var q2 = 0; q2 < fxKeys.length; q2++) if (fxKeys[q2].x === x && fxKeys[q2].name === lk[y][0]) hitK = q2;
+                        if (hitK < 0) fxKeys.push({ x: x, name: lk[y][0], arr: gen });
+                        else {
+                            var pre = [];
+                            for (var q3 = 0; q3 < fxKeys[hitK].arr.length; q3++) if (fxKeys[hitK].arr[q3][0] < l0) pre.push(fxKeys[hitK].arr[q3]);
+                            fxKeys[hitK].arr = pre.concat(gen);
+                        }
+                    }
+                }
             }
             var conv = function (arr, fn) {
                 var out = [], seen = {};
