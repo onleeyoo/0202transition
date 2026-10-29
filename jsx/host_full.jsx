@@ -86,7 +86,7 @@ var T0202 = (function () {
         "Alpha Adjust": { "Opacity": 0, "Ignore Alpha": 1, "Invert Alpha": 2, "Mask Only": 3 },
         "Track Matte Key": { "Matte": 0, "Composite Using": 1, "Reverse": 2 },
         "VR Chromatic Aberrations": { "Aberration (Red)": 5, "Aberration (Green)": 6, "Aberration (Blue)": 7 },
-        "Alpha Glow": { "Glow": 0, "Brightness": 1, "Start Color": 2, "Use End Color": 3, "End Color": 4, "Fade Out": 5 }
+        "Alpha Glow": { "Glow": 0, "Brightness": 1, "Start Color": 2, "End Color": 3, "Use End Color": 4, "Fade Out": 5 }
     };
 
     function getVideoFx(name) {
