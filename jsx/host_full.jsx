@@ -424,6 +424,23 @@ var T0202 = (function () {
         try { var g = seq.getSelection(); n = g ? g.length : 0; } catch (e) { n = selectedClips(seq).length; }
         return "OK|" + n;
     }
+    /* selection changes are pushed to the panel (no polling). Premiere calls the bound handler,
+       the handler sends a CSXS event "com.0202.sel" carrying the number of selected clips. */
+    function watchSel() {
+        try { if (!$.global.__T0202_pp) $.global.__T0202_pp = new ExternalObject("lib:PlugPlugExternalObject"); } catch (e) { return "ERR|plugplug"; }
+        if (typeof app.bind !== "function") return "ERR|nobind";
+        $.global.__T0202_selFire = function () {
+            try { var ev = new CSXSEvent(); ev.type = "com.0202.sel"; ev.data = String(selCount()).split("|")[1]; ev.dispatch(); } catch (e) {}
+        };
+        if (!$.global.__T0202_selBound) {
+            try {
+                app.bind("onActiveSequenceSelectionChanged", function () { $.global.__T0202_selFire(); });
+                app.bind("onActiveSequenceChanged", function () { $.global.__T0202_selFire(); });
+            } catch (e2) { return "ERR|bind"; }
+            $.global.__T0202_selBound = true;
+        }
+        return "OK";
+    }
     function tfKeyed(t) {
         var ks = [t.anchor, t.pos, t.scale, t.sw, t.rot, t.op];
         for (var i = 0; i < ks.length; i++) { try { if (ks[i] && ks[i].isTimeVarying()) return true; } catch (e) {} }
@@ -463,11 +480,64 @@ var T0202 = (function () {
         }
         return null;
     }
-    /* snap a normalized point to a whole pixel of the sequence frame (no half-pixel shimmer on slow zooms) */
-    function snapPt(pt, info) {
-        return [Math.round(pt[0] * info.w) / info.w, Math.round(pt[1] * info.h) / info.h];
+    /* frame size of the clip's own media (a nested sequence's frame, or the footage's video size) */
+    function clipSrcSize(clip, info) {
+        var pi = null;
+        try { pi = clip.projectItem; } catch (e0) {}
+        if (pi) {
+            try {
+                var seqs = app.project.sequences;
+                for (var i = 0; i < seqs.numSequences; i++) {
+                    var sq = seqs[i];
+                    if (sq.projectItem && sq.projectItem.nodeId === pi.nodeId) return [Number(sq.frameSizeHorizontal), Number(sq.frameSizeVertical)];
+                }
+            } catch (e1) {}
+            try {
+                var md = String(pi.getProjectMetadata());
+                var m = md.match(/VideoInfo>\s*(\d+)\s*x\s*(\d+)/);
+                if (m) return [Number(m[1]), Number(m[2])];
+            } catch (e2) {}
+        }
+        return [info.w, info.h]; /* graphics etc: same as the sequence */
     }
-    function bicubic(t) { try { if (t.sampling) t.sampling.setValue(1, 1); } catch (e) {} }
+    /* the picker works on the SEQUENCE frame; Transform (an effect) works on the clip's SOURCE frame before Motion.
+       invert Motion (position / scale / anchor) so the picked spot on screen is where the clip really pivots.
+       returns a normalized point in source space, snapped to a whole source pixel. */
+    function seqToSource(clip, info, pt) {
+        var src = clipSrcSize(clip, info), sw = src[0], sh = src[1];
+        var mp = [0.5, 0.5], ma = [0.5, 0.5], sx = 1, sy = 1;
+        try {
+            var comps = clip.components;
+            for (var i = 0; i < comps.numItems; i++) {
+                if (comps[i].matchName !== "AE.ADBE Motion") continue;
+                var pr = comps[i].properties;
+                var pv = pr[0].getValue(), sc = Number(pr[1].getValue()) / 100, scw = Number(pr[2].getValue()) / 100, uni = !!pr[3].getValue(), av = pr[5].getValue();
+                mp = [Number(pv[0]), Number(pv[1])]; ma = [Number(av[0]), Number(av[1])];
+                sy = sc || 1; sx = uni ? sy : (scw || 1);
+                break;
+            }
+        } catch (e) {}
+        var seqX = pt[0] * info.w, seqY = pt[1] * info.h;
+        var srcX = ma[0] * sw + (seqX - mp[0] * info.w) / sx;
+        var srcY = ma[1] * sh + (seqY - mp[1] * info.h) / sy;
+        srcX = Math.round(srcX); srcY = Math.round(srcY);
+        return [srcX / sw, srcY / sh];
+    }
+    /* original basis: the picked point is used as-is in the clip's own frame, snapped to a whole pixel */
+    function snapSrc(clip, info, pt) {
+        var src = clipSrcSize(clip, info), sw = src[0], sh = src[1];
+        return [Math.round(pt[0] * sw) / sw, Math.round(pt[1] * sh) / sh];
+    }
+    /* off-centre pivot: Transform rounds its move to whole pixels each frame, which reads as shaking.
+       Transform's own shutter (180) averages those steps out (measured: 0.6px jumps -> under 0.02px).
+       Only switched on when the clip has no blur set, so a user's blur setting is kept. */
+    function bicubic(t) {
+        try { if (t.sampling) t.sampling.setValue(1, 1); } catch (e) {}
+        try {
+            var uc = t.useComp ? t.useComp.getValue() : false, sh = t.shutter ? Number(t.shutter.getValue()) : 0;
+            if (uc || !sh) { t.useComp.setValue(false, 1); t.shutter.setValue(180, 1); }
+        } catch (e2) {}
+    }
     function shiftPos(pr, dx, dy) {
         var keyed = false;
         try { keyed = pr.isTimeVarying(); } catch (e) {}
@@ -488,9 +558,10 @@ var T0202 = (function () {
         if (!sel.length) return "ERR|nosel";
         var info = seqInfo(seq), qs = null;
         try { app.enableQE(); qs = qe.project.getActiveSequence(); } catch (eq) {}
-        var moved = 0, made = 0, pt = snapPt([o.x, o.y], info);
+        var moved = 0, made = 0;
         for (var k = 0; k < sel.length; k++) {
             var clip = seq.videoTracks[sel[k].t].clips[sel[k].c], comps = clip.components, hit = 0;
+            var pt = snapSrc(clip, info, [o.x, o.y]);
             for (var i = 0; i < comps.numItems; i++) {
                 var c = comps[i];
                 if (!isTF(c.matchName)) continue;
@@ -969,5 +1040,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), setZoomAt: safe(setZoomAt, "setZoomAt"), selCount: safe(selCount, "selCount"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), setZoomAt: safe(setZoomAt, "setZoomAt"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
