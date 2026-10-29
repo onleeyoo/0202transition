@@ -223,25 +223,31 @@ var T0202 = (function () {
 
     function isTF(m) { return m === "AE.ADBE Geometry" || m === "AE.ADBE Geometry2"; }
 
-    /* signature of every component on the clip. matchName alone is not enough: a second Transform added next to the
-       first one has the same name and param count, so the diff used to hand back the OLD Transform and the new keys
-       overwrote the previous effect. Include keyframe counts / values so an untouched new effect always differs. */
+    /* cheap signature (name + param count). Only when the new effect lands among identical neighbours
+       (e.g. a 2nd Transform) do we look deeper - and then only isTimeVarying(), which is cheap. */
     function compSig(clip) {
         var r = [], comps = clip.components;
-        for (var i = 0; i < comps.numItems; i++) {
-            var c = comps[i], sig = c.matchName + "#" + c.properties.numItems;
-            try {
-                var n = Math.min(c.properties.numItems, 12);
-                for (var j = 0; j < n; j++) {
-                    var pr = c.properties[j], t = "";
-                    try { if (pr.isTimeVarying()) { var ks = pr.getKeys(); t = "k" + (ks ? ks.length : 0) + ":" + (ks && ks.length ? ks[0].ticks : ""); } } catch (e1) {}
-                    if (!t) { try { var v = pr.getValue(); t = (typeof v === "number") ? String(Math.round(v * 1000) / 1000) : String(v); } catch (e2) { t = "?"; } }
-                    sig += "|" + t;
-                }
-            } catch (e) {}
-            r.push(sig);
-        }
+        for (var i = 0; i < comps.numItems; i++) r.push(comps[i].matchName + "#" + comps[i].properties.numItems);
         return r;
+    }
+    function isFresh(c) {
+        try {
+            var n = Math.min(c.properties.numItems, 12);
+            for (var j = 0; j < n; j++) { try { if (c.properties[j].isTimeVarying()) return false; } catch (e1) {} }
+        } catch (e) {}
+        return true;
+    }
+    function findNewComp(comps, before) {
+        var after = compSig({ components: comps }), i;
+        for (i = 0; i < before.length; i++) if (before[i] !== after[i]) break;
+        /* block of identical signatures around the split point: the new one is in there */
+        var sig = after[i], lo = i, hi = i;
+        while (lo > 0 && after[lo - 1] === sig) lo--;
+        while (hi + 1 < after.length && after[hi + 1] === sig) hi++;
+        if (lo === hi) return i;
+        var pick = -1;
+        for (var k = hi; k >= lo; k--) if (isFresh(comps[k])) { pick = k; break; }
+        return pick >= 0 ? pick : i;
     }
 
     /* Adds an effect through QE and returns the NEW component.
@@ -258,10 +264,8 @@ var T0202 = (function () {
             clip = seq.videoTracks[ref.t].clips[ref.c];
             var comps = clip.components;
             if (comps.numItems > before.length) {
-                var after = compSig(clip);
-                for (var i = 0; i < comps.numItems; i++) {
-                    if (i >= before.length || before[i] !== after[i]) { lastAdd = { qi: qi, idx: i }; return comps[i]; }
-                }
+                var ni = findNewComp(comps, before);
+                if (ni >= 0 && ni < comps.numItems) { lastAdd = { qi: qi, idx: ni }; return comps[ni]; }
                 lastAdd = { qi: qi, idx: comps.numItems - 1 };
                 return comps[comps.numItems - 1];
             }
