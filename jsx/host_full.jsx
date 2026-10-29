@@ -64,7 +64,10 @@ var T0202 = (function () {
         "Tint": ["Tint", "\uC0C9\uC870"],
         "Brightness & Contrast": ["Brightness & Contrast", "\uBC1D\uAE30 \uBC0F \uB300\uBE44"],
         "ProcAmp": ["ProcAmp"],
-        "Crop": ["Crop", "\uC790\uB974\uAE30"]
+        "Crop": ["Crop", "\uC790\uB974\uAE30"],
+        "Ramp": ["Ramp", "\uADF8\uB808\uC774\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uB7A8\uD504"],
+        "Alpha Adjust": ["Alpha Adjust", "\uC54C\uD30C \uC870\uC815"],
+        "Track Matte Key": ["Track Matte Key", "\uD2B8\uB799 \uB9E4\uD2B8 \uD0A4"]
     };
 
     /* parameter index fallback when display names are localized */
@@ -76,7 +79,10 @@ var T0202 = (function () {
         "Brightness & Contrast": { "Brightness": 0, "Contrast": 1 },
         "Gaussian Blur": { "Blurriness": 0 },
         "ProcAmp": { "Brightness": 0, "Contrast": 1, "Hue": 2, "Saturation": 3 },
-        "Crop": { "Left": 0, "Top": 1, "Right": 2, "Bottom": 3, "Zoom": 4, "Edge Feather": 5 }
+        "Crop": { "Left": 0, "Top": 1, "Right": 2, "Bottom": 3, "Zoom": 4, "Edge Feather": 5 },
+        "Ramp": { "Start of Ramp": 0, "Start Color": 1, "End of Ramp": 2, "End Color": 3, "Ramp Shape": 4 },
+        "Alpha Adjust": { "Opacity": 0, "Ignore Alpha": 1, "Invert Alpha": 2, "Mask Only": 3 },
+        "Track Matte Key": { "Matte": 0, "Composite Using": 1, "Reverse": 2 }
     };
 
     function getVideoFx(name) {
@@ -100,7 +106,10 @@ var T0202 = (function () {
         "Brightness & Contrast": [/brightness/i, /\uBC1D\uAE30/],
         "Gaussian Blur": [/gaussian/i, /\uAC00\uC6B0\uC2DC\uC548/],
         "ProcAmp": [/procamp/i],
-        "Crop": [/^crop$/i, /^\uC790\uB974\uAE30$/]
+        "Crop": [/^crop$/i, /^\uC790\uB974\uAE30$/],
+        "Ramp": [/^ramp$/i, /\uB7A8\uD504/],
+        "Alpha Adjust": [/alpha adjust/i, /\uC54C\uD30C \uC870\uC815/],
+        "Track Matte Key": [/track matte/i, /\uD2B8\uB799 \uB9E4\uD2B8/]
     };
     /* matchName each effect must have once added (null = don't check) */
     var EXPECT = {
@@ -111,7 +120,9 @@ var T0202 = (function () {
         "Tint": /^AE\.ADBE Tint$/,
         "Brightness & Contrast": /Brightness/,
         "Gaussian Blur": /Gaussian Blur|Fast Blur/,
-        "Crop": /Crop/i
+        "Crop": /Crop/i,
+        "Ramp": /Ramp/,
+        "Track Matte Key": /Track Matte/
     };
     var fxOk = {};
     function scanFx(name) {
@@ -366,6 +377,31 @@ var T0202 = (function () {
         return "OK|" + info.h + "|" + out.join(";");
     }
 
+    /* wave fill needs original text + a matte copy BELOW the selected layer (Premiere hides the matte track).
+       returns how many graphic/text clips overlap the selected clip on lower tracks */
+    function matteLayers() {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        var worst = 99;
+        for (var k = 0; k < sel.length; k++) {
+            var cl = sel[k].clip, cs = Number(cl.start.ticks), ce = Number(cl.end.ticks), n = 0;
+            for (var t = 0; t < sel[k].t; t++) {
+                var tr = seq.videoTracks[t];
+                for (var c = 0; c < tr.clips.numItems; c++) {
+                    var o = tr.clips[c];
+                    if (Number(o.end.ticks) <= cs || Number(o.start.ticks) >= ce) continue;
+                    var gfx = false;
+                    for (var j = 0; j < o.components.numItems; j++) { if (/Graphic Group|ADBE Text/.test(o.components[j].matchName)) { gfx = true; break; } }
+                    if (gfx) n++;
+                }
+            }
+            if (n < worst) worst = n;
+        }
+        return "OK|" + worst;
+    }
+
     function applyPreset(p) {
         var seq = app.project.activeSequence;
         if (!seq) return "ERR|noseq";
@@ -507,7 +543,9 @@ var T0202 = (function () {
                 var st = fxl[x].set || [];
                 for (y = 0; y < st.length; y++) {
                     var pr = prmByName(c2, st[y][0], fxl[x].fx);
-                    if (pr) { try { pr.setValue(st[y][1], 1); } catch (e9) {} } else missing[fxl[x].fx + ":" + st[y][0]] = 1;
+                    var sv = st[y][1];
+                    if (sv === "$BELOW") sv = ref.t; /* Track Matte "Matte" popup: Video N = track index + 1, so the track below = ref.t */
+                    if (pr) { try { pr.setValue(sv, 1); } catch (e9) {} } else missing[fxl[x].fx + ":" + st[y][0]] = 1;
                 }
             }
             for (y = 0; y < fxKeys.length; y++) {
@@ -805,5 +843,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
