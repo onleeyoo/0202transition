@@ -58,7 +58,7 @@ var T0202 = (function () {
         "Transform": TF_NAMES,
         "Gaussian Blur": ["Gaussian Blur (Legacy)", "Gaussian Blur", "Fast Blur",
             "\uAC00\uC6B0\uC2DC\uC548 \uD750\uB9BC(\uB808\uAC70\uC2DC)", "\uAC00\uC6B0\uC2DC\uC548 \uD750\uB9BC", "\uBE60\uB978 \uD750\uB9BC"],
-        "Turbulent Displace": ["Turbulent Displace", "\uB09C\uB958 \uBCC0\uC704"],
+        "Turbulent Displace": ["Turbulent Displace", "\uB4A4\uD2C0\uAE30 \uBCC0\uC704", "\uB09C\uB958 \uBCC0\uC704", "\uB09C\uAE30\uB958 \uBCC0\uC704"],
         "Posterize Time": ["Posterize Time", "\uC2DC\uAC04 \uD3EC\uC2A4\uD130\uD654"],
         "Wave Warp": ["Wave Warp", "\uBB3C\uACB0 \uBE44\uD2C0\uAE30"],
         "Tint": ["Tint", "\uC0C9\uC870"],
@@ -71,7 +71,7 @@ var T0202 = (function () {
     var PIDX = {
         "Turbulent Displace": { "Amount": 1, "Size": 2, "Offset (Turbulence)": 3, "Complexity": 4, "Evolution": 5, "Cycle Evolution": 7, "Cycle (in Revolutions)": 8, "Random Seed": 9 },
         "Posterize Time": { "Frame Rate": 0 },
-        "Wave Warp": { "Wave Height": 1, "Wave Width": 2, "Direction": 3, "Wave Speed": 4 },
+        "Wave Warp": { "Wave Height": 1, "Wave Width": 2, "Direction": 3, "Wave Speed": 4, "Pinning": 5, "Phase": 6 },
         "Tint": { "Map Black To": 0, "Map White To": 1, "Amount to Tint": 2 },
         "Brightness & Contrast": { "Brightness": 0, "Contrast": 1 },
         "Gaussian Blur": { "Blurriness": 0 },
@@ -93,7 +93,7 @@ var T0202 = (function () {
     /* loose patterns to find an effect in a localized effect list */
     var SCAN = {
         "Transform": [/^transform$/i, /^\uBCC0\uD615$/, /^\uBCC0\uD658$/, /^\uD2B8\uB79C\uC2A4\uD3FC$/, /\uBCC0\uD615/, /transform/i],
-        "Turbulent Displace": [/turbulent displace/i, /\uB09C\uB958/],
+        "Turbulent Displace": [/turbulent displace/i, /\uB4A4\uD2C0\uAE30/, /\uB09C\uB958/, /\uB09C\uAE30\uB958/],
         "Posterize Time": [/posterize time/i, /\uC2DC\uAC04.*\uD3EC\uC2A4\uD130/, /\uD3EC\uC2A4\uD130.*\uC2DC\uAC04/],
         "Wave Warp": [/wave warp/i, /\uBB3C\uACB0/, /\uD30C\uB3C4/],
         "Tint": [/^tint$/i, /^\uC0C9\uC870$/],
