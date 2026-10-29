@@ -334,6 +334,38 @@ var T0202 = (function () {
     }
 
     /* p: see presets.js. Uses a NEW Transform effect for all motion; never touches Motion / Opacity. */
+    /* fill-up helper: render each selected clip ALONE (other video tracks muted) to a PNG so the panel can find
+       the rows the text occupies. Track mute states and the playhead are always restored. */
+    function measureClips(o) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        app.enableQE();
+        var qs = qe.project.getActiveSequence();
+        var info = seqInfo(seq);
+        var dir = new Folder(Folder.temp.fsName + "/0202Transition"); if (!dir.exists) dir.create();
+        var nT = seq.videoTracks.numTracks, prevMute = [], i, k;
+        for (i = 0; i < nT; i++) { try { prevMute.push(seq.videoTracks[i].isMuted()); } catch (e0) { prevMute.push(false); } }
+        var ph = seq.getPlayerPosition().ticks, out = [], stamp = new Date().getTime();
+        try {
+            for (k = 0; k < sel.length; k++) {
+                var cl = sel[k].clip, cs = Number(cl.start.ticks), ce = Number(cl.end.ticks);
+                var t = (o && o.anchor === "playhead" && Number(ph) >= cs && Number(ph) < ce) ? Number(ph) : cs + Math.round((ce - cs) / 2 / info.tpf) * info.tpf;
+                for (i = 0; i < nT; i++) { try { seq.videoTracks[i].setMute(i === sel[k].t ? 0 : 1); } catch (e1) {} }
+                seq.setPlayerPosition(String(t));
+                var f = dir.fsName + "/band_" + stamp + "_" + k;
+                var ok = false;
+                try { ok = qs.exportFramePNG(qs.CTI.timecode, f); } catch (e2) { ok = false; }
+                out.push(ok ? f + ".png" : "");
+            }
+        } finally {
+            for (i = 0; i < nT; i++) { try { seq.videoTracks[i].setMute(prevMute[i] ? 1 : 0); } catch (e3) {} }
+            try { seq.setPlayerPosition(String(ph)); } catch (e4) {}
+        }
+        return "OK|" + info.h + "|" + out.join(";");
+    }
+
     function applyPreset(p) {
         var seq = app.project.activeSequence;
         if (!seq) return "ERR|noseq";
@@ -397,7 +429,16 @@ var T0202 = (function () {
             var fxKeys = [];
             for (x = 0; x < fxl.length; x++) {
                 var ks = fxl[x].keys || [];
-                for (var y = 0; y < ks.length; y++) fxKeys.push({ x: x, name: ks[y][0], arr: ks[y][1] });
+                for (var y = 0; y < ks.length; y++) {
+                    var arrK = ks[y][1];
+                    /* text-band fill: map Crop Top 100..0 onto this clip's text rows (bottom..top, in %) */
+                    if (p.bands && p.bands[s] && fxl[x].fx === "Crop" && ks[y][0] === "Top") {
+                        var bTop = p.bands[s][0], bBot = p.bands[s][1], mk = [];
+                        for (var z = 0; z < arrK.length; z++) mk.push([arrK[z][0], Math.round((bTop + (arrK[z][1] / 100) * (bBot - bTop)) * 100) / 100]);
+                        arrK = mk;
+                    }
+                    fxKeys.push({ x: x, name: ks[y][0], arr: arrK });
+                }
             }
             var toSeq, nm;
             if (p.type === "span") {
@@ -419,7 +460,7 @@ var T0202 = (function () {
                 }
                 /* clip (or the part after the start point) is shorter than the move: squeeze it to fit */
                 var availF = (endT - base) / info.tpf, needF = lastF * fpsK;
-                if (p.type !== "loop" && needF > availF && needF > 0 && availF > 0) { fit = availF / needF; fitted++; }
+                if (p.type !== "loop" && !p.noFit && needF > availF && needF > 0 && availF > 0) { fit = availF / needF; fitted++; }
                 toSeq = function (f) { return base + Math.round(f * fpsK * fit) * info.tpf; };
             }
             var conv = function (arr, fn) {
@@ -764,5 +805,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
