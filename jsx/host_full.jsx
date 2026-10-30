@@ -672,9 +672,15 @@ var T0202 = (function () {
                 for (var y = 0; y < ks.length; y++) {
                     var arrK = ks[y][1];
                     /* text-band fill: map Crop Top 100..0 onto this clip's text rows (bottom..top, in %) */
-                    if (p.bands && p.bands[s] && fxl[x].fx === "Crop" && ks[y][0] === "Top") {
-                        var bTop = p.bands[s][0], bBot = p.bands[s][1], mk = [];
-                        for (var z = 0; z < arrK.length; z++) mk.push([arrK[z][0], Math.round((bTop + (arrK[z][1] / 100) * (bBot - bTop)) * 100) / 100]);
+                    /* graphic box (crop wipes): 0..100 now means "graphic fully shown .. fully hidden" instead of the whole frame */
+                    var bx = (p.bands && p.bands[s] && fxl[x].fx === "Crop") ? p.bands[s] : null, side = ks[y][0];
+                    if (bx && (side === "Top" || side === "Bottom" || ((side === "Left" || side === "Right") && bx.length >= 4))) {
+                        var lo, span, mk = [];
+                        if (side === "Top") { lo = bx[0]; span = bx[1] - bx[0]; }
+                        else if (side === "Bottom") { lo = 100 - bx[1]; span = bx[1] - bx[0]; }
+                        else if (side === "Left") { lo = bx[2]; span = bx[3] - bx[2]; }
+                        else { lo = 100 - bx[3]; span = bx[3] - bx[2]; }
+                        for (var z = 0; z < arrK.length; z++) mk.push([arrK[z][0], Math.round((lo + (arrK[z][1] / 100) * span) * 100) / 100]);
                         arrK = mk;
                     }
                     fxKeys.push({ x: x, name: ks[y][0], arr: arrK });
