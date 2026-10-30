@@ -680,7 +680,14 @@ var T0202 = (function () {
                         else if (side === "Bottom") { lo = 100 - bx[1]; span = bx[1] - bx[0]; }
                         else if (side === "Left") { lo = bx[2]; span = bx[3] - bx[2]; }
                         else { lo = 100 - bx[3]; span = bx[3] - bx[2]; }
-                        for (var z = 0; z < arrK.length; z++) mk.push([arrK[z][0], Math.round((lo + (arrK[z][1] / 100) * span) * 100) / 100]);
+                        /* motion blur on = feathered edge: widen the box by the feather so no ghost is left at start/end */
+                        var fth = 0, sv0 = fxl[x].set || [];
+                        for (var f0 = 0; f0 < sv0.length; f0++) if (sv0[f0][0] === "Edge Feather") fth = Number(sv0[f0][1]) || 0;
+                        if (fth > 0) {
+                            var padP = fth * 1.2 / ((side === "Top" || side === "Bottom") ? info.h : info.w) * 100;
+                            lo -= padP; span += padP * 2;
+                        }
+                        for (var z = 0; z < arrK.length; z++) mk.push([arrK[z][0], Math.max(0, Math.min(100, Math.round((lo + (arrK[z][1] / 100) * span) * 100) / 100))]);
                         arrK = mk;
                     }
                     fxKeys.push({ x: x, name: ks[y][0], arr: arrK });
