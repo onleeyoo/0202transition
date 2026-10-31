@@ -363,7 +363,7 @@ var T0202 = (function () {
         app.enableQE();
         var qs = qe.project.getActiveSequence();
         var info = seqInfo(seq);
-        var dir = new Folder(Folder.temp.fsName + "/0202Transition"); if (!dir.exists) dir.create();
+        var dir = tmpDir();
         var nT = seq.videoTracks.numTracks, prevMute = [], i, k;
         for (i = 0; i < nT; i++) { try { prevMute.push(seq.videoTracks[i].isMuted()); } catch (e0) { prevMute.push(false); } }
         var ph = seq.getPlayerPosition().ticks, out = [], stamp = new Date().getTime();
@@ -373,10 +373,7 @@ var T0202 = (function () {
                 var t = (o && o.anchor === "playhead" && Number(ph) >= cs && Number(ph) < ce) ? Number(ph) : cs + Math.round((ce - cs) / 2 / info.tpf) * info.tpf;
                 for (i = 0; i < nT; i++) { try { seq.videoTracks[i].setMute(i === sel[k].t ? 0 : 1); } catch (e1) {} }
                 seq.setPlayerPosition(String(t));
-                var f = dir.fsName + "/band_" + stamp + "_" + k;
-                var ok = false;
-                try { ok = qs.exportFramePNG(qs.CTI.timecode, f); } catch (e2) { ok = false; }
-                out.push(ok ? f + ".png" : "");
+                out.push(exportFrame(qs, dir.fsName + SEP + "band_" + stamp + "_" + k));   /* waits for the file, so the mute state is still right */
             }
         } finally {
             for (i = 0; i < nT; i++) { try { seq.videoTracks[i].setMute(prevMute[i] ? 1 : 0); } catch (e3) {} }
@@ -411,19 +408,33 @@ var T0202 = (function () {
     }
 
     /* current composite frame at the playhead -> PNG (for picking a zoom centre in the panel) */
+    /* frame export that also works on Windows: native path separator, and don't trust the return value
+       (Windows Premiere returns nothing even when the PNG is written) - wait for the file instead. */
+    var SEP = ($.os && /windows/i.test($.os)) ? "\\" : "/";
+    function tmpDir() {
+        var dir = new Folder(Folder.temp.fsName + SEP + "0202Transition");
+        if (!dir.exists) dir.create();
+        return dir;
+    }
+    function exportFrame(qs, base) {
+        var threw = false;
+        try { qs.exportFramePNG(qs.CTI.timecode, base); } catch (e) { threw = true; }
+        var png = new File(base + ".png");
+        for (var w = 0; w < 80 && !png.exists; w++) $.sleep(50);   /* up to 4s */
+        if (png.exists) return png.fsName;
+        return threw ? "" : base + ".png";   /* not there yet: let the panel keep polling */
+    }
     function grabFrame() {
         var seq = app.project.activeSequence;
         if (!seq) return "ERR|noseq";
         app.enableQE();
         var qs = qe.project.getActiveSequence();
-        var dir = new Folder(Folder.temp.fsName + "/0202Transition"); if (!dir.exists) dir.create();
+        var dir = tmpDir();
         /* leftovers from earlier grabs / text-band measurements never pile up */
         try { var old = dir.getFiles(function (x) { return x instanceof File && /^(frame|band)_.*\.png$/.test(x.name); }); for (var j = 0; j < old.length; j++) { try { old[j].remove(); } catch (eR) {} } } catch (eL) {}
-        var f = dir.fsName + "/frame_" + new Date().getTime();
-        var ok = false;
-        try { ok = qs.exportFramePNG(qs.CTI.timecode, f); } catch (e) { ok = false; }
-        if (!ok) return "ERR|frame";
-        return "OK|" + seq.frameSizeHorizontal + "|" + seq.frameSizeVertical + "|" + f + ".png";
+        var got = exportFrame(qs, dir.fsName + SEP + "frame_" + new Date().getTime());
+        if (!got) return "ERR|frame";
+        return "OK|" + seq.frameSizeHorizontal + "|" + seq.frameSizeVertical + "|" + got;
     }
     /* reset: remove every effect type this panel adds (Transform, blur, crop, warp, colour ...) from the selected
        video clips. Motion / Opacity / Time Remapping / text and user effects like Lumetri are left alone.
