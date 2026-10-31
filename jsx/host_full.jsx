@@ -425,6 +425,38 @@ var T0202 = (function () {
         if (!ok) return "ERR|frame";
         return "OK|" + seq.frameSizeHorizontal + "|" + seq.frameSizeVertical + "|" + f + ".png";
     }
+    /* reset: remove every effect type this panel adds (Transform, blur, crop, warp, colour ...) from the selected
+       video clips. Motion / Opacity / Time Remapping / text and user effects like Lumetri are left alone.
+       DOM components can't be removed, so match by display name on the QE item and remove there (last to first). */
+    var RESET_RX = /Geometry|Gaussian Blur|Fast Blur|Turbulent|Posterize|Wave Warp|Tint|Brightness|ProcAmp|Crop|Ramp|Alpha Adjust|Track Matte|Alpha Glow|Chromatic/i;
+    function resetFx() {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        app.enableQE();
+        var qs = qe.project.getActiveSequence(), info = seqInfo(seq), clips = 0, removed = 0;
+        for (var s = 0; s < sel.length; s++) {
+            var clip = sel[s].clip, comps = clip.components, names = {}, any = false;
+            for (var i = 0; i < comps.numItems; i++) {
+                var m = String(comps[i].matchName);
+                if (/AE\.ADBE (Motion|Opacity)$/.test(m) || !RESET_RX.test(m)) continue;
+                names[comps[i].displayName] = (names[comps[i].displayName] || 0) + 1; any = true;
+            }
+            if (!any) continue;
+            var qi = null;
+            try { qi = qeItemFor(qs.getVideoTrackAt(sel[s].t), sel[s].c, clip, info.tpf); } catch (e) { qi = null; }
+            if (!qi) continue;
+            var got = 0;
+            for (var k = qi.numComponents - 1; k >= 0; k--) {
+                var qc = null; try { qc = qi.getComponentAt(k); } catch (e2) { qc = null; }
+                if (!qc || !names[qc.name]) continue;
+                try { qc.remove(); names[qc.name]--; got++; } catch (e3) {}
+            }
+            if (got) { clips++; removed += got; }
+        }
+        return "OK|" + clips + "|" + removed;
+    }
     function selCount() {
         var seq = app.project.activeSequence;
         if (!seq) return "OK|0";
@@ -1081,5 +1113,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), setZoomAt: safe(setZoomAt, "setZoomAt"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
