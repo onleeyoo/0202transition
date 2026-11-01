@@ -321,6 +321,33 @@ var T0202 = (function () {
         } catch (e2) { lastReport += "report err " + e2 + " || "; }
     }
 
+    function motionPos(clip) {
+        for (var i = 0; i < clip.components.numItems; i++) {
+            if (clip.components[i].matchName === "AE.ADBE Motion") { var v = clip.components[i].properties[0].getValue(); return [Number(v[0]), Number(v[1])]; }
+        }
+        return [0.5, 0.5];
+    }
+    function fixMatteShift(seq, ref, info, qs) {
+        var me = seq.videoTracks[ref.t].clips[ref.c], mp = motionPos(me), dx = mp[0] - 0.5, dy = mp[1] - 0.5;
+        if (Math.abs(dx) < 1e-4 && Math.abs(dy) < 1e-4) return;
+        var tb = seq.videoTracks[ref.t - 1]; if (!tb) return;
+        var ms = Number(me.start.ticks), cb = -1;
+        for (var c = 0; c < tb.clips.numItems; c++) {
+            var o = tb.clips[c];
+            if (Number(o.start.ticks) <= ms + info.tpf / 2 && Number(o.end.ticks) > ms) { cb = c; break; }
+        }
+        if (cb < 0) return;
+        var mc = tb.clips[cb], want = [0.5 - dx, 0.5 - dy];
+        for (var i = 0; i < mc.components.numItems; i++) {   /* already compensated (effect applied twice) */
+            if (!isTF(mc.components[i].matchName)) continue;
+            var tt0 = transformTargets(mc.components[i]);
+            try { var pv = tt0.pos.getValue(); if (Math.abs(pv[0] - want[0]) < 1e-4 && Math.abs(pv[1] - want[1]) < 1e-4) return; } catch (e0) {}
+        }
+        var comp = addFxVerified(seq, { t: ref.t - 1, c: cb, clip: mc }, info, qs, "Transform");
+        if (!comp) return;
+        var tt = transformTargets(comp);
+        tt.pos.setValue(want, 1);
+    }
     function transformTargets(comp) {
         var p = comp.properties;
         return { anchor: p[0], pos: p[1], uni: p[2], scale: p[3], sw: p[4], rot: p[7], op: p[8], useComp: p[9], shutter: p[10], sampling: p[11] };
@@ -666,7 +693,7 @@ var T0202 = (function () {
             var src = function (seqT) { return cin + (seqT - cs) * spd; };
 
             /* extra effects first (QE puts new ones on top, so Transform added last ends up on top) */
-            var fxl = p.fx || [];
+            var fxl = p.fx || [], matteFix = false;
             for (var x = 0; x < fxl.length; x++) {
                 var fc = null;
                 try { fc = addFxVerified(seq, ref, info, qs, fxl[x].fx); } catch (ex) { fc = null; }
@@ -717,15 +744,28 @@ var T0202 = (function () {
                     /* text-band fill: map Crop Top 100..0 onto this clip's text rows (bottom..top, in %) */
                     /* graphic box (crop wipes): 0..100 now means "graphic fully shown .. fully hidden" instead of the whole frame */
                     var bx = (p.bands && p.bands[s] && fxl[x].fx === "Crop") ? p.bands[s] : null, side = ks[y][0];
+                    /* the box was measured on screen (after Motion); Crop works before Motion, so undo the clip's Motion offset */
+                    if (bx) {
+                        try {
+                            var mpb = motionPos(seq.videoTracks[ref.t].clips[ref.c]), ox = (mpb[0] - 0.5) * 100, oy = (mpb[1] - 0.5) * 100;
+                            bx = [bx[0] - oy, bx[1] - oy].concat(bx.length >= 4 ? [bx[2] - ox, bx[3] - ox] : []);
+                        } catch (eMo) {}
+                    }
                     if (bx && (side === "Top" || side === "Bottom" || ((side === "Left" || side === "Right") && bx.length >= 4))) {
                         var lo, span, mk = [];
                         if (side === "Top") { lo = bx[0]; span = bx[1] - bx[0]; }
                         else if (side === "Bottom") { lo = 100 - bx[1]; span = bx[1] - bx[0]; }
                         else if (side === "Left") { lo = bx[2]; span = bx[3] - bx[2]; }
                         else { lo = 100 - bx[3]; span = bx[3] - bx[2]; }
-                        /* motion blur on = feathered edge: widen the box by the feather so no ghost is left at start/end */
+                        /* motion blur on = feathered edge: widen the box by the feather so no ghost is left at start/end;
+                           a Wave Warp after the crop bends the edge up/down by its height, widen by that too */
                         var fth = 0, sv0 = fxl[x].set || [];
                         for (var f0 = 0; f0 < sv0.length; f0++) if (sv0[f0][0] === "Edge Feather") fth = Number(sv0[f0][1]) || 0;
+                        for (var w0 = 0; w0 < fxl.length; w0++) {
+                            if (fxl[w0].fx !== "Wave Warp") continue;
+                            var ws = fxl[w0].set || [];
+                            for (var w1 = 0; w1 < ws.length; w1++) if (ws[w1][0] === "Wave Height") fth += (Number(ws[w1][1]) || 0) * 1.5 / 1.2;
+                        }
                         if (fth > 0) {
                             var padP = fth * 1.2 / ((side === "Top" || side === "Bottom") ? info.h : info.w) * 100;
                             lo -= padP; span += padP * 2;
@@ -827,9 +867,16 @@ var T0202 = (function () {
                     var sv = st[y][1];
                     /* Track Matte "Matte" popup stores the track's internal id (not its position): in a fresh sequence V3 = 3,
                        but after tracks were added/deleted V3 can be id 10. Use the real id of the track right below. */
-                    if (sv === "$BELOW") { sv = ref.t; try { var tb = seq.videoTracks[ref.t - 1]; if (tb && tb.id !== undefined && tb.id !== null && String(tb.id) !== "") sv = Number(tb.id); } catch (eTB) {} }
+                    if (sv === "$BELOW") { matteFix = true; sv = ref.t; try { var tb = seq.videoTracks[ref.t - 1]; if (tb && tb.id !== undefined && tb.id !== null && String(tb.id) !== "") sv = Number(tb.id); } catch (eTB) {} }
                     if (pr) { try { pr.setValue(sv, 1); } catch (e9) {} } else missing[fxl[x].fx + ":" + st[y][0]] = 1;
                 }
+            }
+            /* Premiere moves a track matte by the matted clip's own Motion position (on top of where the matte layer
+               already is), so a text that was moved with Motion gets its fill shifted twice. Cancel it on the hidden matte
+               copy below with a Transform that moves it back by the same amount. */
+            if (matteFix) {
+                matteFix = false;
+                try { fixMatteShift(seq, ref, info, qs); } catch (eMF) {}
             }
             for (y = 0; y < fxKeys.length; y++) {
                 var c3 = fxl[fxKeys[y].x]._comp;
