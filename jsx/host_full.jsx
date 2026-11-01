@@ -825,7 +825,9 @@ var T0202 = (function () {
                 for (y = 0; y < st.length; y++) {
                     var pr = prmByName(c2, st[y][0], fxl[x].fx);
                     var sv = st[y][1];
-                    if (sv === "$BELOW") sv = ref.t; /* Track Matte "Matte" popup: Video N = track index + 1, so the track below = ref.t */
+                    /* Track Matte "Matte" popup stores the track's internal id (not its position): in a fresh sequence V3 = 3,
+                       but after tracks were added/deleted V3 can be id 10. Use the real id of the track right below. */
+                    if (sv === "$BELOW") { sv = ref.t; try { var tb = seq.videoTracks[ref.t - 1]; if (tb && tb.id !== undefined && tb.id !== null && String(tb.id) !== "") sv = Number(tb.id); } catch (eTB) {} }
                     if (pr) { try { pr.setValue(sv, 1); } catch (e9) {} } else missing[fxl[x].fx + ":" + st[y][0]] = 1;
                 }
             }
