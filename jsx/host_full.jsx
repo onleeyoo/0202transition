@@ -397,6 +397,10 @@ var T0202 = (function () {
         try {
             for (k = 0; k < sel.length; k++) {
                 var cl = sel[k].clip, cs = Number(cl.start.ticks), ce = Number(cl.end.ticks);
+                /* only graphics/text need measuring: plain video uses the full frame, no frame export at all */
+                var gfx = false;
+                for (var gj = 0; gj < cl.components.numItems; gj++) { if (/Graphic Group|ADBE Text/.test(cl.components[gj].matchName)) { gfx = true; break; } }
+                if (!gfx) { out.push(""); continue; }
                 var t = (o && o.anchor === "playhead" && Number(ph) >= cs && Number(ph) < ce) ? Number(ph) : cs + Math.round((ce - cs) / 2 / info.tpf) * info.tpf;
                 for (i = 0; i < nT; i++) { try { seq.videoTracks[i].setMute(i === sel[k].t ? 0 : 1); } catch (e1) {} }
                 seq.setPlayerPosition(String(t));
