@@ -455,6 +455,13 @@ var T0202 = (function () {
         if (png.exists) return png.fsName;
         return threw ? "" : base + ".png";   /* not there yet: let the panel keep polling */
     }
+    /* delete every frame/band PNG left in our temp folder (also run each time the panel loads) */
+    function cleanTmp() {
+        var n = 0;
+        try { var dir = tmpDir(), old = dir.getFiles(function (x) { return x instanceof File && /^(frame|band)_.*\.png$/i.test(x.name); });
+            for (var j = 0; j < old.length; j++) { try { if (old[j].remove()) n++; } catch (eR) {} } } catch (eL) {}
+        return "OK|" + n;
+    }
     function grabFrame() {
         var seq = app.project.activeSequence;
         if (!seq) return "ERR|noseq";
@@ -462,7 +469,7 @@ var T0202 = (function () {
         var qs = qe.project.getActiveSequence();
         var dir = tmpDir();
         /* leftovers from earlier grabs / text-band measurements never pile up */
-        try { var old = dir.getFiles(function (x) { return x instanceof File && /^(frame|band)_.*\.png$/.test(x.name); }); for (var j = 0; j < old.length; j++) { try { old[j].remove(); } catch (eR) {} } } catch (eL) {}
+        cleanTmp();
         var got = exportFrame(qs, dir.fsName + SEP + "frame_" + new Date().getTime());
         if (!got) return "ERR|frame";
         return "OK|" + seq.frameSizeHorizontal + "|" + seq.frameSizeVertical + "|" + got;
@@ -1177,5 +1184,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), cleanTmp: safe(cleanTmp, "cleanTmp"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
