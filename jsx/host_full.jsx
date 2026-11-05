@@ -1178,6 +1178,90 @@ var T0202 = (function () {
         return o.join("\n");
     }
 
+
+    /* typewriter (Korean jamo): the panel builds the steps, we only read / keyframe the Source Text param.
+       Source Text holds a JSON string; the panel sends a template with @@0202T@@ (text) / "@@0202L@@" (length). */
+    var SRC_TEXT_NAMES = /^(Source Text|\uC18C\uC2A4 \uD14D\uC2A4\uD2B8|\u30BD\u30FC\u30B9\u30C6\u30AD\u30B9\u30C8)$/i;
+    function srcTextParam(clip) {
+        var i, j, c, pr, alt = null;
+        for (i = 0; i < clip.components.numItems; i++) {
+            c = clip.components[i];
+            for (j = 0; j < c.properties.numItems; j++) {
+                pr = c.properties[j];
+                if (SRC_TEXT_NAMES.test(String(pr.displayName))) return pr;
+                if (!alt && /Graphic|Text/i.test(c.matchName)) {
+                    try { var v = pr.getValue(); if (typeof v === "string" && v.indexOf("{") >= 0 && v.length > 10) alt = pr; } catch (e) {}
+                }
+            }
+        }
+        if (alt) return alt;
+        /* last resort: Source Text is the first param of the Text component */
+        for (i = 0; i < clip.components.numItems; i++) {
+            c = clip.components[i];
+            if (c.matchName === "AE.ADBE Text" && c.properties.numItems) return c.properties[0];
+        }
+        return null;
+    }
+    /* what the Text component looks like on this Premiere (for the status line when reading fails) */
+    function textDump(clip) {
+        var o = [];
+        for (var i = 0; i < clip.components.numItems; i++) {
+            var c = clip.components[i];
+            if (!/Text|Graphic/i.test(c.matchName)) continue;
+            for (var j = 0; j < c.properties.numItems && j < 6; j++) {
+                var pr = c.properties[j], tv = "?";
+                try { var v = pr.getValue(); tv = typeof v + ":" + String(v).length + ":" + String(v).substr(0, 40); } catch (e) { tv = "ERR " + e.message; }
+                o.push(c.matchName.replace("AE.ADBE ", "") + "#" + j + " [" + pr.displayName + "] " + tv);
+            }
+        }
+        return o.join(" ; ");
+    }
+    function textGet() {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        var out = [];
+        for (var k = 0; k < sel.length; k++) {
+            var prm = srcTextParam(sel[k].clip), v = "";
+            if (prm) { try { v = String(prm.getValue()); } catch (e) { v = ""; } }
+            if (v.indexOf("{") < 0) lastErr = "text: " + textDump(sel[k].clip);
+            out.push(encodeURIComponent(v));
+        }
+        return "OK|" + out.join(";");
+    }
+    function textType(o) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var sel = selectedClips(seq);
+        if (!sel.length) return "ERR|nosel";
+        var info = seqInfo(seq), ph = Number(seq.getPlayerPosition().ticks), done = 0, fail = 0, squeezed = 0;
+        for (var k = 0; k < sel.length; k++) {
+            var it = o.clips[k]; if (!it || !it.steps || !it.steps.length) { fail++; continue; }
+            var clip = sel[k].clip, prm = srcTextParam(clip);
+            if (!prm) { fail++; continue; }
+            var cs = Number(clip.start.ticks), ce = Number(clip.end.ticks), cin = Number(clip.inPoint.ticks), spd = 1;
+            try { spd = Math.abs(Number(clip.getSpeed())) || 1; } catch (eS) {}
+            var st = (o.anchor === "playhead" && ph >= cs && ph < ce) ? ph : cs;
+            st = cs + Math.round((st - cs) / info.tpf) * info.tpf;
+            var n = it.steps.length, fpk = o.fpk || 2;
+            var room = Math.floor((ce - st) / info.tpf) - 1;
+            if (n * fpk > room) { fpk = Math.max(1, Math.floor(room / n)); squeezed++; }
+            var tpl = decodeURIComponent(it.tpl);
+            try { prm.setTimeVarying(false); } catch (e0) {}
+            try { prm.setTimeVarying(true); } catch (e1) {}
+            var okAll = true;
+            for (var i = 0; i < n; i++) {
+                var f = Math.min(i * fpk, Math.max(0, room));
+                var t = mkTime(cin + (st + f * info.tpf - cs) * spd);
+                var val = tpl.split("@@0202T@@").join(decodeURIComponent(it.steps[i][0])).split("\"@@0202L@@\"").join(String(it.steps[i][1]));
+                try { prm.addKey(t); prm.setValueAtKey(t, val, i === n - 1 ? 1 : 0); } catch (eK) { okAll = false; lastErr = "textType key " + eK.message; break; }
+            }
+            if (okAll) done++; else fail++;
+        }
+        return "OK|" + done + "|" + fail + "|" + squeezed;
+    }
+
     function ping() { return "OK|" + app.version; }
 
     /* never let an exception escape as a bare "EvalScript error": report line + message instead */
@@ -1188,5 +1272,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), cleanTmp: safe(cleanTmp, "cleanTmp"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), cleanTmp: safe(cleanTmp, "cleanTmp"), textGet: safe(textGet, "textGet"), textType: safe(textType, "textType"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
