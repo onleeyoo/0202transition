@@ -64,6 +64,7 @@ var T0202 = (function () {
         "Tint": ["Tint", "\uC0C9\uC870"],
         "Brightness & Contrast": ["Brightness & Contrast", "\uBC1D\uAE30 \uBC0F \uB300\uBE44"],
         "ProcAmp": ["ProcAmp", "\uBE44\uB514\uC624 \uD504\uB85C\uC138\uC2A4 \uC570\uD504"],
+        "Basic 3D": ["Basic 3D", "\uAE30\uBCF8 3D"],
         "Crop": ["Crop", "\uC790\uB974\uAE30"],
         "Ramp": ["Ramp", "\uADF8\uB77C\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uADF8\uB808\uC774\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uB7A8\uD504"],
         "Alpha Adjust": ["Alpha Adjust", "\uC54C\uD30C \uC870\uC815"],
@@ -81,6 +82,7 @@ var T0202 = (function () {
         "Brightness & Contrast": { "Brightness": 0, "Contrast": 1 },
         "Gaussian Blur": { "Blurriness": 0 },
         "ProcAmp": { "Brightness": 0, "Contrast": 1, "Hue": 2, "Saturation": 3 },
+        "Basic 3D": { "Swivel": 0, "Tilt": 1, "Distance to Image": 2 },
         "Crop": { "Left": 0, "Top": 1, "Right": 2, "Bottom": 3, "Zoom": 4, "Edge Feather": 5 },
         "Ramp": { "Start of Ramp": 0, "Start Color": 1, "End of Ramp": 2, "End Color": 3, "Ramp Shape": 4 },
         "Alpha Adjust": { "Opacity": 0, "Ignore Alpha": 1, "Invert Alpha": 2, "Mask Only": 3 },
@@ -110,6 +112,7 @@ var T0202 = (function () {
         "Brightness & Contrast": [/brightness/i, /\uBC1D\uAE30/],
         "Gaussian Blur": [/gaussian/i, /\uAC00\uC6B0\uC2DC\uC548/],
         "ProcAmp": [/procamp/i, /\uD504\uB85C\uC138\uC2A4 \uC570\uD504/],
+        "Basic 3D": [/^basic 3d$/i, /\uAE30\uBCF8 3D/],
         "Crop": [/^crop$/i, /^\uC790\uB974\uAE30$/],
         "Ramp": [/^ramp$/i, /\uB7A8\uD504/],
         "Alpha Adjust": [/alpha adjust/i, /\uC54C\uD30C \uC870\uC815/],
@@ -130,7 +133,8 @@ var T0202 = (function () {
         "Ramp": /Ramp/,
         "Track Matte Key": /Track Matte/,
         "VR Chromatic Aberrations": /Chromatic/i,
-        "Alpha Glow": /Alpha Glow|Glow/
+        "Alpha Glow": /Alpha Glow|Glow/,
+        "Basic 3D": /Basic 3D/
     };
     var fxOk = {};
     function scanFx(name) {
