@@ -1173,6 +1173,7 @@ var T0202 = (function () {
                 var qt = qs.getVideoTrackAt(sel[s].t), it = [];
                 for (var q = 0; q < qt.numItems && q < 12; q++) { var x = qt.getItemAt(q); it.push(x.type + ":" + x.name + "@" + qeTicks(x)); }
                 o.push("  qe " + it.join(" ; "));
+                try { var td = textDump(cl); if (td) o.push("  text " + td); } catch (eTd) {}
             }
         } catch (e4) { o.push("seq err " + e4); }
         return o.join("\n");
@@ -1183,34 +1184,30 @@ var T0202 = (function () {
        Source Text holds a JSON string; the panel sends a template with @@0202T@@ (text) / "@@0202L@@" (length). */
     var SRC_TEXT_NAMES = /^(Source Text|\uC18C\uC2A4 \uD14D\uC2A4\uD2B8|\u30BD\u30FC\u30B9\u30C6\u30AD\u30B9\u30C8)$/i;
     function srcTextParam(clip) {
-        var i, j, c, pr, alt = null;
+        /* only ever touch the Text component (AE.ADBE Text): name match first, then its first param (= Source Text) */
+        var i, j, c, pr;
         for (i = 0; i < clip.components.numItems; i++) {
             c = clip.components[i];
+            if (c.matchName !== "AE.ADBE Text") continue;
             for (j = 0; j < c.properties.numItems; j++) {
                 pr = c.properties[j];
-                if (SRC_TEXT_NAMES.test(String(pr.displayName))) return pr;
-                if (!alt && /Graphic|Text/i.test(c.matchName)) {
-                    try { var v = pr.getValue(); if (typeof v === "string" && v.indexOf("{") >= 0 && v.length > 10) alt = pr; } catch (e) {}
-                }
+                if (SRC_TEXT_NAMES.test(String(pr.displayName))) { srcInfo = "Text#" + j + " [" + pr.displayName + "]"; return pr; }
             }
-        }
-        if (alt) return alt;
-        /* last resort: Source Text is the first param of the Text component */
-        for (i = 0; i < clip.components.numItems; i++) {
-            c = clip.components[i];
-            if (c.matchName === "AE.ADBE Text" && c.properties.numItems) return c.properties[0];
+            if (c.properties.numItems) { srcInfo = "Text#0 [" + c.properties[0].displayName + "] (first)"; return c.properties[0]; }
         }
         return null;
     }
+    var srcInfo = "";
     /* what the Text component looks like on this Premiere (for the status line when reading fails) */
     function textDump(clip) {
         var o = [];
         for (var i = 0; i < clip.components.numItems; i++) {
             var c = clip.components[i];
-            if (!/Text|Graphic/i.test(c.matchName)) continue;
-            for (var j = 0; j < c.properties.numItems && j < 6; j++) {
+            if (c.matchName !== "AE.ADBE Text") continue;
+            for (var j = 0; j < c.properties.numItems && j < 4; j++) {
                 var pr = c.properties[j], tv = "?";
-                try { var v = pr.getValue(); tv = typeof v + ":" + String(v).length + ":" + String(v).substr(0, 40); } catch (e) { tv = "ERR " + e.message; }
+                try { tv = (pr.isTimeVarying() ? "KEY " : ""); } catch (eT) { tv = ""; }
+                try { var v = pr.getValue(); tv += typeof v + ":" + String(v).length + ":" + String(v).substr(0, 300); } catch (e) { tv = "ERR " + e.message; }
                 o.push(c.matchName.replace("AE.ADBE ", "") + "#" + j + " [" + pr.displayName + "] " + tv);
             }
         }
@@ -1257,6 +1254,7 @@ var T0202 = (function () {
                 var val = tpl.split("@@0202T@@").join(decodeURIComponent(it.steps[i][0])).split("\"@@0202L@@\"").join(String(it.steps[i][1]));
                 try { prm.addKey(t); prm.setValueAtKey(t, val, i === n - 1 ? 1 : 0); } catch (eK) { okAll = false; lastErr = "textType key " + eK.message; break; }
             }
+            lastReport = "typer " + srcInfo + " steps " + n + " fpk " + fpk + " len " + tpl.length;
             if (okAll) done++; else fail++;
         }
         return "OK|" + done + "|" + fail + "|" + squeezed;
