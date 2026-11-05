@@ -1197,7 +1197,15 @@ var T0202 = (function () {
         }
         return null;
     }
-    var srcInfo = "";
+    var srcInfo = "", typerRaw = "";
+    /* admin debugging: dump Source Text before/after into the dev folder when it exists on this machine */
+    function typerDump(txt) {
+        try {
+            var d = new Folder("~/workspace/0202Transition/_tmp"); if (!d.exists) return;
+            var f = new File(d.fsName + "/typer_dump.txt"); f.encoding = "UTF-8";
+            if (f.open("w")) { f.write(txt); f.close(); }
+        } catch (e) {}
+    }
     /* what the Text component looks like on this Premiere (for the status line when reading fails) */
     function textDump(clip) {
         var o = [];
@@ -1223,6 +1231,7 @@ var T0202 = (function () {
             var prm = srcTextParam(sel[k].clip), v = "";
             if (prm) { try { v = String(prm.getValue()); } catch (e) { v = ""; } }
             if (v.indexOf("{") < 0) lastErr = "text: " + textDump(sel[k].clip);
+            if (k === 0) typerRaw = v;
             out.push(encodeURIComponent(v));
         }
         return "OK|" + out.join(";");
@@ -1254,6 +1263,11 @@ var T0202 = (function () {
                 var val = tpl.split("@@0202T@@").join(decodeURIComponent(it.steps[i][0])).split("\"@@0202L@@\"").join(String(it.steps[i][1]));
                 try { prm.addKey(t); prm.setValueAtKey(t, val, i === n - 1 ? 1 : 0); } catch (eK) { okAll = false; lastErr = "textType key " + eK.message; break; }
             }
+            var back = "", back0 = "";
+            try { back = String(prm.getValueAtKey(mkTime(cin + (st + Math.min((n - 1) * fpk, Math.max(0, room)) * info.tpf - cs) * spd))); } catch (eB) { back = "ERR " + eB.message; }
+            try { back0 = String(prm.getValue()); } catch (eB0) { back0 = "ERR " + eB0.message; }
+            typerDump("SRC " + srcInfo + "\n\n=== RAW (before)\n" + typerRaw + "\n\n=== SENT (last step)\n" + tpl.split("@@0202T@@").join(decodeURIComponent(it.steps[n - 1][0])).split("\"@@0202L@@\"").join(String(it.steps[n - 1][1])) +
+                "\n\n=== READBACK at last key\n" + back + "\n\n=== getValue now\n" + back0 + "\n\nerr " + lastErr);
             lastReport = "typer " + srcInfo + " steps " + n + " fpk " + fpk + " len " + tpl.length;
             if (okAll) done++; else fail++;
         }
