@@ -1294,6 +1294,7 @@ var T0202 = (function () {
         var total = (n - 1) * fpk + hold;
         var tb = Math.round(info.fps), ntsc = Math.abs(info.fps - tb) > 0.01 ? "TRUE" : "FALSE";
         var rate = "<rate><timebase>" + tb + "</timebase><ntsc>" + ntsc + "</ntsc></rate>";
+        /* XML font size renders ~1.93x in Premiere, so we send size/1.93 to get the size the user typed */
         var font = xmlEsc(decodeURIComponent(o.font || "")), size = Math.round((o.size || 100) * info.h / 1080), col = o.color || [255, 255, 255];
         var items = "", t = 0;
         for (i = 0; i < n; i++) {
@@ -1302,7 +1303,7 @@ var T0202 = (function () {
                 '<effect><name>Text</name><effectid>Text</effectid><effectcategory>Text</effectcategory><effecttype>generator</effecttype><mediatype>video</mediatype>' +
                 '<parameter><parameterid>str</parameterid><name>Text</name><value>' + tx + '</value></parameter>' +
                 (font ? '<parameter><parameterid>fontname</parameterid><name>Font</name><value>' + font + '</value></parameter>' : '') +
-                '<parameter><parameterid>fontsize</parameterid><name>Size</name><valuemin>0</valuemin><valuemax>1000</valuemax><value>' + size + '</value></parameter>' +
+                '<parameter><parameterid>fontsize</parameterid><name>Size</name><valuemin>0</valuemin><valuemax>1000</valuemax><value>' + Math.round(size / 1.93) + '</value></parameter>' +
                 '<parameter><parameterid>fontcolor</parameterid><name>Font Color</name><value><alpha>255</alpha><red>' + col[0] + '</red><green>' + col[1] + '</green><blue>' + col[2] + '</blue></value></parameter>' +
                 '</effect></generatoritem>';
             t += d;
