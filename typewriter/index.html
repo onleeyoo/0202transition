@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>0202Typewriter</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span>0202<b>Typewriter</b></div>
+  <button class="reload" id="reload" title="패널 새로고침">↻</button>
+</header>
+<main>
+  <div class="tip" id="tip"><i>i</i><span id="tipText">텍스트 레이어를 선택하고 [타자 치기]를 누르세요 · 선택하지 않으면 문장을 직접 입력해서 만들 수 있어요</span></div>
+  <div class="bigs">
+    <button class="big primary" id="make"><b>타자 치기</b><small id="makeSub">선택한 자막 그대로</small></button>
+    <button class="big" id="edit" disabled><b>수정</b><small>만든 타자 클립 고치기</small></button>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label>한 타</label>
+      <div class="seg" id="speed"><button data-v="1">1f</button><button data-v="2" class="on">2f</button><button data-v="3">3f</button><button data-v="c">직접</button></div>
+      <input id="speedIn" class="num hidden" type="number" min="1" max="60" value="4"><span class="unit hidden" id="speedUnit">f</span>
+    </div>
+    <div class="hint" id="speedHint">한 글자(자음·모음)마다 2프레임</div>
+  </div>
+
+  <div class="card form hidden" id="form">
+    <div class="ftitle" id="formTitle">타자 치기</div>
+    <label class="fl">문장</label>
+    <textarea id="text" rows="2" placeholder="예: 말해 봐요"></textarea>
+    <div id="styleClone" class="note">✓ 선택한 자막 스타일 그대로 (폰트·색·테두리·위치)</div>
+    <div id="stylePlain" class="hidden">
+      <div class="frow">
+        <div class="fcol"><label class="fl">폰트 <em>영문 PostScript 이름</em></label><input id="font" list="fontList"><datalist id="fontList"><option>AppleSDGothicNeo-Bold</option><option>AppleSDGothicNeo-Regular</option><option>Pretendard-Bold</option><option>Pretendard-Black</option><option>NotoSansKR-Bold</option><option>MalgunGothicBold</option><option>NanumGothicBold</option><option>NanumSquareB</option><option>BlackHanSans-Regular</option></datalist></div>
+        <div class="fcol s"><label class="fl">크기</label><input id="size" type="number" min="10" max="600" value="110"></div>
+        <div class="fcol c"><label class="fl">색</label><input id="color" type="color" value="#ffffff"></div>
+      </div>
+    </div>
+    <label class="chk" id="hideRow"><input type="checkbox" id="hide" checked> 원래 자막은 끄기 (지우지 않음)</label>
+    <div class="factions"><button class="ghost" id="cancel">취소</button><button class="go" id="go">만들기</button></div>
+  </div>
+</main>
+<footer id="status">준비 중…</footer>
+<script src="js/main.js"></script>
+</body>
+</html>
