@@ -1274,6 +1274,87 @@ var T0202 = (function () {
         return "OK|" + done + "|" + fail + "|" + squeezed;
     }
 
+
+    /* typewriter v2: Source Text can't be written by script in Premiere 26, so we build the steps as an FCP XML
+       sequence of real text clips (one per keystroke), import it, and drop that sequence in as one nested clip. */
+    function xmlEsc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function typerXml(o) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var info = seqInfo(seq), sel = selectedClips(seq), ref = sel.length ? sel[0] : null;
+        var ph = Number(seq.getPlayerPosition().ticks), st;
+        if (ref) { var cs = Number(ref.clip.start.ticks), ce = Number(ref.clip.end.ticks); st = (o.anchor === "playhead" && ph >= cs && ph < ce) ? ph : cs; }
+        else st = ph;
+        st = Math.round(st / info.tpf) * info.tpf;
+        var steps = [], i;
+        for (i = 0; i < o.steps.length; i++) steps.push(decodeURIComponent(o.steps[i]));
+        var n = steps.length, fpk = o.fpk || 2;
+        var hold = ref ? Math.round((Number(ref.clip.end.ticks) - st) / info.tpf) - (n - 1) * fpk : Math.round(info.fps * 2);
+        if (hold < fpk) hold = Math.max(fpk, Math.round(info.fps));
+        var total = (n - 1) * fpk + hold;
+        var tb = Math.round(info.fps), ntsc = Math.abs(info.fps - tb) > 0.01 ? "TRUE" : "FALSE";
+        var rate = "<rate><timebase>" + tb + "</timebase><ntsc>" + ntsc + "</ntsc></rate>";
+        var font = xmlEsc(decodeURIComponent(o.font || "")), size = Math.round((o.size || 100) * info.h / 1080), col = o.color || [255, 255, 255];
+        var items = "", t = 0;
+        for (i = 0; i < n; i++) {
+            var d = i === n - 1 ? hold : fpk, tx = xmlEsc(steps[i]);
+            items += '<generatoritem id="g' + i + '"><name>' + tx + '</name><duration>' + d + '</duration>' + rate + '<start>' + t + '</start><end>' + (t + d) + '</end><in>0</in><out>' + d + '</out><enabled>TRUE</enabled><anamorphic>FALSE</anamorphic><alphatype>black</alphatype>' +
+                '<effect><name>Text</name><effectid>Text</effectid><effectcategory>Text</effectcategory><effecttype>generator</effecttype><mediatype>video</mediatype>' +
+                '<parameter><parameterid>str</parameterid><name>Text</name><value>' + tx + '</value></parameter>' +
+                (font ? '<parameter><parameterid>fontname</parameterid><name>Font</name><value>' + font + '</value></parameter>' : '') +
+                '<parameter><parameterid>fontsize</parameterid><name>Size</name><valuemin>0</valuemin><valuemax>1000</valuemax><value>' + size + '</value></parameter>' +
+                '<parameter><parameterid>fontcolor</parameterid><name>Font Color</name><value><alpha>255</alpha><red>' + col[0] + '</red><green>' + col[1] + '</green><blue>' + col[2] + '</blue></value></parameter>' +
+                '</effect></generatoritem>';
+            t += d;
+        }
+        var name = decodeURIComponent(o.name || "typer");
+        var xml = '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="4"><sequence id="s1"><name>' + xmlEsc(name) + '</name><duration>' + total + '</duration>' + rate +
+            '<media><video><format><samplecharacteristics>' + rate + '<width>' + info.w + '</width><height>' + info.h + '</height><pixelaspectratio>square</pixelaspectratio></samplecharacteristics></format><track>' + items + '</track></video></media></sequence></xmeml>';
+        /* free track: first video track above the selected clip (or from V1) with nothing in [st, st+total) */
+        var en = st + total * info.tpf, tIdx = -1;
+        for (var ti = ref ? ref.t + 1 : 0; ti < seq.videoTracks.numTracks && tIdx < 0; ti++) {
+            var tr = seq.videoTracks[ti], free = true;
+            for (var c = 0; c < tr.clips.numItems; c++) { var k = tr.clips[c]; if (Number(k.start.ticks) < en && Number(k.end.ticks) > st) { free = false; break; } }
+            if (free) tIdx = ti;
+        }
+        if (tIdx < 0) return "ERR|notrack";
+        var f = new File(tmpDir().fsName + SEP + "typer_" + new Date().getTime() + ".xml");
+        f.encoding = "UTF-8"; if (!f.open("w")) return "ERR|write"; f.write(xml); f.close();
+        var before = {}, s0;
+        for (s0 = 0; s0 < app.project.sequences.numSequences; s0++) before[app.project.sequences[s0].sequenceID] = 1;
+        app.project.importFiles([f.fsName], true, app.project.rootItem, false);
+        try { f.remove(); } catch (eR) {}
+        var nseq = null;
+        for (s0 = 0; s0 < app.project.sequences.numSequences; s0++) { var q = app.project.sequences[s0]; if (!before[q.sequenceID]) nseq = q; }
+        if (!nseq) return "ERR|import";
+        /* text start point: left-aligned typing grows to the right, so start left of centre by about half the final width */
+        /* Text Position = left end of the baseline. The panel measured the final text (width / font size) with the real font. */
+        var wpx = (o.wr || 0.9 * steps[n - 1].length) * size;
+        var px = Math.max(0.02, 0.5 - wpx / 2 / info.w), py = 0.5 + size * 0.36 / info.h;
+        try {
+            var ntr = nseq.videoTracks[0];
+            for (var m = 0; m < ntr.clips.numItems; m++) {
+                var cl = ntr.clips[m];
+                for (var ci = 0; ci < cl.components.numItems; ci++) {
+                    var cp = cl.components[ci];
+                    if (cp.matchName !== "AE.ADBE Text") continue;
+                    for (var pi = 0; pi < cp.properties.numItems; pi++) if (cp.properties[pi].displayName === "Position") { cp.properties[pi].setValue([px, py], 1); break; }
+                }
+            }
+        } catch (eP) {}
+        /* tidy: move the step sequence into a "0202 typer" bin */
+        try {
+            var binName = "0202 \uD0C0\uC790", bin = null, root = app.project.rootItem;
+            for (var b = 0; b < root.children.numItems; b++) if (root.children[b].type === 2 && root.children[b].name === binName) bin = root.children[b];
+            if (!bin) bin = root.createBin(binName);
+            if (bin && nseq.projectItem) nseq.projectItem.moveBin(bin);
+        } catch (eB) {}
+        var tm = new Time(); tm.ticks = String(st);
+        seq.videoTracks[tIdx].overwriteClip(nseq.projectItem, tm);
+        try { app.project.openSequence(seq.sequenceID); } catch (eO) {}
+        return "OK|" + n + "|" + (tIdx + 1) + "|" + total;
+    }
+
     function ping() { return "OK|" + app.version; }
 
     /* never let an exception escape as a bare "EvalScript error": report line + message instead */
@@ -1284,5 +1365,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), cleanTmp: safe(cleanTmp, "cleanTmp"), textGet: safe(textGet, "textGet"), textType: safe(textType, "textType"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), cleanTmp: safe(cleanTmp, "cleanTmp"), textGet: safe(textGet, "textGet"), textType: safe(textType, "textType"), typerXml: safe(typerXml, "typerXml"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();

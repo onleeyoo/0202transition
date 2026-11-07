@@ -57,6 +57,34 @@
   table.heat td small { display:block; opacity:.75; font-size:10px; }
   table.heat td.none { background:transparent; }
   .note { color:var(--mut); font-size:12px; margin-top:8px; }
+  .tabs { display:inline-flex; background:var(--card); border:1px solid var(--line); border-radius:11px; padding:3px; margin-top:14px; box-shadow:var(--shadow); }
+  .tabs button { border:0; background:transparent; color:var(--mut); padding:7px 16px; border-radius:8px; font-weight:600; font-size:13px; }
+  .tabs button.on { background:var(--blue); color:#fff; }
+  .calHead { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .calHead h2 { margin:0; font-size:17px; }
+  .calNav { display:flex; gap:6px; }
+  .calNav button { width:32px; height:32px; border-radius:9px; border:1px solid var(--line); background:var(--card); color:var(--tx); font-size:16px; line-height:1; }
+  .calNav button:disabled { opacity:.35; cursor:default; }
+  .calNav .today { width:auto; padding:0 10px; font-size:12px; color:var(--mut); }
+  .chips { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:14px; }
+  @media (max-width:760px) { .chips { grid-template-columns:repeat(2, 1fr); } }
+  .chip { background:var(--bg); border-radius:12px; padding:10px 12px; }
+  .chip span { color:var(--mut); font-size:11px; display:block; }
+  .chip b { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.3px; }
+  .chip small { color:var(--mut); font-size:11px; margin-left:4px; }
+  .cal { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
+  .cal .wd { text-align:center; color:var(--mut); font-size:12px; font-weight:600; padding-bottom:2px; }
+  .cal .wd.sun { color:#e5534b; } .cal .wd.sat { color:var(--blue); }
+  .cal .d { position:relative; aspect-ratio:1 / .78; border-radius:10px; background:var(--grid); display:flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums; transition:transform .12s; }
+  .cal .d:not(.empty):hover { transform:scale(1.05); z-index:2; }
+  .cal .d i { position:absolute; top:6px; left:8px; font-style:normal; font-size:11px; opacity:.7; pointer-events:none; }
+  .cal .d b { font-size:17px; font-weight:800; pointer-events:none; }
+  .cal .d.empty { background:transparent; }
+  .cal .d.future { background:transparent; border:1px dashed var(--line); }
+  .cal .d.now { box-shadow:0 0 0 2px var(--tx) inset; }
+  @media (max-width:520px) { .cal { gap:4px; } .cal .d b { font-size:13px; } .cal .d i { top:3px; left:5px; font-size:9px; } }
+  .scale { display:flex; align-items:center; justify-content:flex-end; gap:4px; color:var(--mut); font-size:11px; margin-top:10px; }
+  .scale s { width:14px; height:14px; border-radius:4px; display:inline-block; }
   #tip { position:fixed; pointer-events:none; background:#111827; color:#fff; font-size:12px; padding:6px 9px; border-radius:8px; display:none; z-index:9; white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.2); }
 </style>
 </head>
@@ -80,6 +108,24 @@
       <div class="kpi"><span>누적 설치</span><b id="k-total">-</b><small id="k-opens">-</small></div>
     </div>
 
+    <div class="tabs"><button data-tab="ov" class="on">개요</button><button data-tab="cal">달력</button></div>
+
+    <div id="tab-cal" style="display:none">
+      <div class="card">
+        <div class="calHead"><h2 id="calTitle">-</h2><div class="calNav"><button class="today" id="calNow">이번 달</button><button id="calPrev" aria-label="이전 달">‹</button><button id="calNext" aria-label="다음 달">›</button></div></div>
+        <div class="chips">
+          <div class="chip"><span>하루 평균 사용자</span><b id="cAvg">-</b><small>명</small></div>
+          <div class="chip"><span>가장 많았던 날</span><b id="cPeak">-</b><small id="cPeakD"></small></div>
+          <div class="chip"><span>신규 설치</span><b id="cNew">-</b><small>명</small></div>
+          <div class="chip"><span>패널 실행</span><b id="cOpens">-</b><small>회</small></div>
+        </div>
+        <div class="cal" id="cal"></div>
+        <div class="scale">적음 <s style="background:var(--grid)"></s><s style="background:rgba(61,107,245,.25)"></s><s style="background:rgba(61,107,245,.5)"></s><s style="background:rgba(61,107,245,.75)"></s><s style="background:rgba(61,107,245,1)"></s> 많음</div>
+        <div class="note" id="calNote">칸 숫자는 그날 패널을 쓴 사람 수예요 · 마우스를 올리면 신규 설치와 실행 횟수도 보여요.</div>
+      </div>
+    </div>
+
+    <div id="tab-ov">
     <div class="card">
       <h2>일별 사용자 <span class="lg"><span><i style="background:var(--blue)"></i>사용자</span><span><i style="background:var(--amber)"></i>신규 설치</span></span></h2>
       <div class="total">기간 합계 신규 <b id="sumNew">-</b>명 · 하루 평균 사용자 <b id="avgUsers">-</b>명</div>
@@ -100,6 +146,7 @@
     <div class="row2">
       <div class="card"><h2>패널 버전 <em>최근 30일</em></h2><div id="vers"></div></div>
       <div class="card"><h2>프리미어 버전 <em>최근 30일</em></h2><div id="hosts"></div></div>
+    </div>
     </div>
   </div>
 </div>
@@ -217,6 +264,45 @@
     var a = 0.08 + p * 0.92, dark = p > 0.45;
     return '<td style="background:rgba(61,107,245,' + a.toFixed(2) + ");color:" + (dark ? "#fff" : css("--tx")) + '" data-t="' + tipT + '">' + Math.round(p * 100) + "%<small>" + n + "</small></td>";
   }
+  /* ---------- calendar tab ---------- */
+  var calDays = [], calMonth = null;
+  var kstToday = function () { return new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); };
+  function calRender() {
+    if (!calMonth) calMonth = kstToday().slice(0, 7);
+    var map = {}, max = 1, first = null;
+    calDays.forEach(function (x) { map[x.day] = x; max = Math.max(max, x.users); if (!first && (x.users || x.new)) first = x.day; });
+    var y = +calMonth.slice(0, 4), m = +calMonth.slice(5, 7), today = kstToday();
+    $("calTitle").textContent = y + "년 " + m + "월";
+    var firstMonth = (first || today).slice(0, 7);
+    $("calPrev").disabled = calMonth <= firstMonth; $("calNext").disabled = calMonth >= today.slice(0, 7);
+    var dim = new Date(Date.UTC(y, m, 0)).getUTCDate(), lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;   /* Monday first */
+    var h = ["월", "화", "수", "목", "금", "토", "일"].map(function (w, i) { return '<div class="wd' + (i === 6 ? " sun" : i === 5 ? " sat" : "") + '">' + w + "</div>"; }).join("");
+    for (var e = 0; e < lead; e++) h += '<div class="d empty"></div>';
+    var sumU = 0, cnt = 0, sumN = 0, sumO = 0, peak = null, WD = ["일", "월", "화", "수", "목", "금", "토"];
+    for (var dd = 1; dd <= dim; dd++) {
+      var key = calMonth + "-" + (dd < 10 ? "0" : "") + dd, x = map[key], wd = WD[new Date(Date.UTC(y, m - 1, dd)).getUTCDay()];
+      if (key > today) { h += '<div class="d future"><i>' + dd + "</i></div>"; continue; }
+      var u = x ? x.users : 0, p = u / max, bg = u ? "rgba(61,107,245," + (0.14 + p * 0.86).toFixed(2) + ")" : "", light = p > 0.5;
+      if (x && (!first || key >= first)) { sumU += u; cnt++; sumN += x.new || 0; sumO += x.opens || 0; if (!peak || u > peak.u) peak = { u: u, d: dd }; }
+      var t = m + "월 " + dd + "일 (" + wd + ") · 사용자 " + u + "명" + (x ? " · 신규 " + (x.new || 0) + "명" + (x.opens != null ? " · 실행 " + x.opens + "회" : "") : "");
+      h += '<div class="d' + (key === today ? " now" : "") + '" style="' + (bg ? "background:" + bg + ";" : "") + (light ? "color:#fff;" : "") + '" data-t="' + t + '"><i>' + dd + "</i><b>" + (u || "") + "</b></div>";
+    }
+    $("cal").innerHTML = h; hover($("cal"));
+    $("cAvg").textContent = cnt ? fmt(Math.round(sumU / cnt)) : "-";
+    $("cPeak").textContent = peak && peak.u ? fmt(peak.u) : "-"; $("cPeakD").textContent = peak && peak.u ? "명 · " + m + "/" + peak.d : "";
+    $("cNew").textContent = fmt(sumN); $("cOpens").textContent = fmt(sumO);
+  }
+  function shiftMonth(k) { var y = +calMonth.slice(0, 4), m = +calMonth.slice(5, 7) - 1 + k; var d = new Date(Date.UTC(y, m, 1)); calMonth = d.toISOString().slice(0, 7); calRender(); }
+  $("calPrev").onclick = function () { shiftMonth(-1); };
+  $("calNext").onclick = function () { shiftMonth(1); };
+  $("calNow").onclick = function () { calMonth = kstToday().slice(0, 7); calRender(); };
+  function showTab(t) {
+    [].forEach.call(document.querySelectorAll(".tabs button"), function (b) { b.classList.toggle("on", b.dataset.tab === t); });
+    $("tab-ov").style.display = t === "ov" ? "" : "none"; $("tab-cal").style.display = t === "cal" ? "" : "none";
+    try { localStorage.setItem("0202stats.tab", t); } catch (e) {}
+  }
+  [].forEach.call(document.querySelectorAll(".tabs button"), function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
+  try { var t0 = localStorage.getItem("0202stats.tab"); if (t0 === "cal") showTab("cal"); } catch (e) {}
   function render(d, c) {
     $("login").style.display = "none"; $("dash").style.display = "block"; $("logout").style.display = "inline-block"; $("msg").textContent = "";
     var peak = 0, peakH = -1; (d.hours || []).forEach(function (x) { if (x.n > peak) { peak = x.n; peakH = x.h; } });
@@ -230,6 +316,7 @@
     var sumNew = 0, sumU = 0; days.forEach(function (x) { sumNew += x.new; sumU += x.users; });
     $("sumNew").textContent = fmt(sumNew); $("avgUsers").textContent = fmt(Math.round(sumU / Math.max(1, days.length)));
     $("lineChart").innerHTML = lineChart(days); hover($("lineChart"));
+    calDays = ((c && (c.cal || c.daily60)) || d.daily || []).slice(); calRender();
     $("hourChart").innerHTML = hourChart(d.hours || []); hover($("hourChart"));
     if (c && c.cohorts) { $("heat").innerHTML = heat(c.cohorts); hover($("heat")); $("heatNote").textContent = "칸 안의 %는 그날 설치한 사람 중 다시 패널을 연 비율, 아래 숫자는 사람 수예요."; }
     else { $("heat").innerHTML = ""; $("heatNote").textContent = "재방문율을 보려면 Supabase SQL 편집기에서 v3.sql을 한 번 실행해 주세요."; }
