@@ -1356,6 +1356,61 @@ var T0202 = (function () {
         return "OK|" + n + "|" + (tIdx + 1) + "|" + total;
     }
 
+
+    /* typewriter v3: clone the selected text clip's own style. We export the sequence as FCP XML (the panel reads the
+       clip's Source Text blob from it), the panel writes a step sequence XML, and we import + nest it here. */
+    function typerProbe() {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var sel = selectedClips(seq);
+        if (!sel.length) return "OK|none";
+        var cl = sel[0].clip, isText = false;
+        for (var i = 0; i < cl.components.numItems; i++) if (cl.components[i].matchName === "AE.ADBE Text") isText = true;
+        if (!isText) return "OK|none";
+        var info = seqInfo(seq);
+        var f = new File(tmpDir().fsName + SEP + "typer_src_" + new Date().getTime() + ".xml");
+        if (!seq.exportAsFinalCutProXML(f.fsName, 1)) return "ERR|export";
+        for (var w = 0; w < 40 && !f.exists; w++) $.sleep(100);
+        return "OK|text|" + f.fsName + "|" + sel[0].t + "|" + cl.start.ticks + "|" + cl.end.ticks + "|" + info.tpf;
+    }
+    function typerImport(o) {
+        var seq = app.project.activeSequence;
+        if (!seq) return "ERR|noseq";
+        var info = seqInfo(seq), path = decodeURIComponent(o.path);
+        var st = Number(o.start), total = Number(o.frames), tRef = Number(o.track);
+        var en = st + total * info.tpf, tIdx = -1;
+        for (var ti = tRef + 1; ti < seq.videoTracks.numTracks && tIdx < 0; ti++) {
+            var tr = seq.videoTracks[ti], free = true;
+            for (var c = 0; c < tr.clips.numItems; c++) { var k = tr.clips[c]; if (Number(k.start.ticks) < en && Number(k.end.ticks) > st) { free = false; break; } }
+            if (free) tIdx = ti;
+        }
+        if (tIdx < 0) return "ERR|notrack";
+        var before = {}, s0;
+        for (s0 = 0; s0 < app.project.sequences.numSequences; s0++) before[app.project.sequences[s0].sequenceID] = 1;
+        app.project.importFiles([path], true, app.project.rootItem, false);
+        try { new File(path).remove(); } catch (eR) {}
+        var nseq = null;
+        for (s0 = 0; s0 < app.project.sequences.numSequences; s0++) { var q = app.project.sequences[s0]; if (!before[q.sequenceID]) nseq = q; }
+        if (!nseq) return "ERR|import";
+        try {
+            var binName = "0202 \uD0C0\uC790", bin = null, root = app.project.rootItem;
+            for (var b = 0; b < root.children.numItems; b++) if (root.children[b].type === 2 && root.children[b].name === binName) bin = root.children[b];
+            if (!bin) bin = root.createBin(binName);
+            if (bin && nseq.projectItem) nseq.projectItem.moveBin(bin);
+        } catch (eB) {}
+        var tm = new Time(); tm.ticks = String(st);
+        seq.videoTracks[tIdx].overwriteClip(nseq.projectItem, tm);
+        /* hide the original text underneath (switch it off, not deleted, so it can come back) */
+        var off = 0;
+        if (o.hideSrc) {
+            var rt = seq.videoTracks[tRef];
+            for (var r = 0; r < rt.clips.numItems; r++) { var rc = rt.clips[r]; if (Number(rc.start.ticks) === st || (Number(rc.start.ticks) <= st && Number(rc.end.ticks) > st)) { try { rc.disabled = true; off++; } catch (eD) {} break; } }
+        }
+        try { app.project.openSequence(seq.sequenceID); } catch (eO) {}
+        return "OK|" + (tIdx + 1) + "|" + off;
+    }
+    function tmpPath(name) { return tmpDir().fsName + SEP + name; }
+
     function ping() { return "OK|" + app.version; }
 
     /* never let an exception escape as a bare "EvalScript error": report line + message instead */
@@ -1366,5 +1421,5 @@ var T0202 = (function () {
         };
     }
     return { applyPreset: safe(applyPreset, "applyPreset"), applyCurve: safe(applyCurve, "applyCurve"), restoreCurve: safe(restoreCurve, "restoreCurve"),
-        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), cleanTmp: safe(cleanTmp, "cleanTmp"), textGet: safe(textGet, "textGet"), textType: safe(textType, "textType"), typerXml: safe(typerXml, "typerXml"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
+        listEffects: safe(listEffects, "listEffects"), addEffect: safe(addEffect, "addEffect"), addTransition: safe(addTransition, "addTransition"), measureClips: safe(measureClips, "measureClips"), matteLayers: safe(matteLayers, "matteLayers"), grabFrame: safe(grabFrame, "grabFrame"), cleanTmp: safe(cleanTmp, "cleanTmp"), textGet: safe(textGet, "textGet"), textType: safe(textType, "textType"), typerXml: safe(typerXml, "typerXml"), typerProbe: safe(typerProbe, "typerProbe"), typerImport: safe(typerImport, "typerImport"), tmpPath: safe(tmpPath, "tmpPath"), setZoomAt: safe(setZoomAt, "setZoomAt"), resetFx: safe(resetFx, "resetFx"), selCount: safe(selCount, "selCount"), watchSel: safe(watchSel, "watchSel"), diag: safe(diag, "diag"), ping: safe(ping, "ping") };
 })();
