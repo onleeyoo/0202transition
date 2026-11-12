@@ -28,6 +28,9 @@
   .kpis { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; }
   @media (max-width:760px) { .kpis { grid-template-columns:repeat(2, 1fr); } }
   .kpis.two { grid-template-columns:1fr 1fr; }
+  .kpi b small.u { font-size:14px; font-weight:600; margin-left:4px; color:var(--mut); }
+  .chips.duo { grid-template-columns:1fr 1fr; }
+  .kpis.two + .card, .card + .kpis.two { margin-top:14px; }
   .chips.three { grid-template-columns:repeat(3, 1fr); }
   @media (max-width:520px) { .chips.three { grid-template-columns:1fr 1fr; } }
   .kpi { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); }
@@ -131,11 +134,9 @@
 
     <div class="card">
       <h2>일별 사용자 달력 <em id="calRange"></em></h2>
-      <div class="chips">
+      <div class="chips duo">
         <div class="chip"><span>하루 평균 사용자</span><b id="cAvg">-</b><small>명</small></div>
         <div class="chip"><span>가장 많았던 날</span><b id="cPeak">-</b><small id="cPeakD"></small></div>
-        <div class="chip"><span>최근 30일 신규 설치</span><b id="cNew">-</b><small>명</small></div>
-        <div class="chip"><span>최근 30일 패널 실행</span><b id="cOpens">-</b><small>회</small></div>
       </div>
       <div class="hmWrap"><div class="hm" id="cal"></div></div>
       <div class="hmFoot"><span>하루 사용자 수</span><span class="lg2">적음 <s class="l0"></s><s class="l1"></s><s class="l2"></s><s class="l3"></s><s class="l4"></s><s class="l5"></s> 많음</span></div>
@@ -150,6 +151,11 @@
       </div>
       <div id="useChart"></div>
       <div class="note" id="useNote"></div>
+    </div>
+
+    <div class="kpis two">
+      <div class="kpi"><span>최근 30일 신규 설치</span><b><span id="cNew">-</span><small class="u">명</small></b></div>
+      <div class="kpi"><span>최근 30일 패널 실행</span><b><span id="cOpens">-</span><small class="u">회</small></b></div>
     </div>
 
     <div class="card">
