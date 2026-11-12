@@ -210,15 +210,17 @@ var T0202 = (function () {
             if (!it || it.type === "Empty") continue;
             items.push({ it: it, st: qeTicks(it), clip: it.type === "Clip" });
         }
-        function add(x) {
-            for (var k = 0; k < seen.length; k++) if (seen[k] === x) return;
-            seen.push(x); out.push(x);
+        /* QE hands out a new wrapper object on every call, so dedupe by list position, not by object:
+           otherwise the same clip shows up 2-3 times and a slow add got retried onto it (duplicate Transforms) */
+        function add(idx) {
+            for (var k = 0; k < seen.length; k++) if (seen[k] === idx) return;
+            seen.push(idx); out.push(items[idx].it);
         }
-        for (i = 0; i < items.length; i++) if (!isNaN(items[i].st) && Math.abs(items[i].st - cs) < tpf / 2 && items[i].it.name === clip.name) add(items[i].it);
-        for (i = 0; i < items.length; i++) if (!isNaN(items[i].st) && Math.abs(items[i].st - cs) < tpf / 2) add(items[i].it);
+        for (i = 0; i < items.length; i++) if (!isNaN(items[i].st) && Math.abs(items[i].st - cs) < tpf / 2 && items[i].it.name === clip.name) add(i);
+        for (i = 0; i < items.length; i++) if (!isNaN(items[i].st) && Math.abs(items[i].st - cs) < tpf / 2) add(i);
         var ci = 0;
-        for (i = 0; i < items.length; i++) { if (!items[i].clip) continue; if (ci === c) add(items[i].it); ci++; }
-        if (c < items.length) add(items[c].it);
+        for (i = 0; i < items.length; i++) { if (!items[i].clip) continue; if (ci === c) add(i); ci++; }
+        if (c < items.length) add(c);
         return out;
     }
 
@@ -284,8 +286,17 @@ var T0202 = (function () {
         for (var ci = 0; ci < cands.length && ci < 4; ci++) {
             var qi = cands[ci], qb = qeNames(qi);
             try { qi.addVideoEffect(fxObj); } catch (ae) { notes.push("add" + ci + ":" + ae); continue; }
-            clip = seq.videoTracks[ref.t].clips[ref.c];
-            var comps = clip.components;
+            /* slower machines: the DOM can lag behind QE. Wait for the new component before calling this a miss,
+               or the effect would be added again on the next candidate */
+            var comps = null;
+            for (var wt = 0; wt < 20; wt++) {
+                clip = seq.videoTracks[ref.t].clips[ref.c];
+                comps = clip.components;
+                if (comps.numItems > before.length) break;
+                var qn = -1; try { qn = qi.numComponents; } catch (eq) {}
+                if (wt >= 8 && qn >= 0 && qn <= qb.length) break;   /* QE says nothing landed here either */
+                $.sleep(60);
+            }
             if (comps.numItems > before.length) {
                 var ni = findNewComp(comps, before);
                 if (ni >= 0 && ni < comps.numItems) { lastAdd = { qi: qi, idx: ni }; return comps[ni]; }
