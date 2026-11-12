@@ -329,7 +329,7 @@
     $("login").style.display = "none"; $("dash").style.display = "block"; $("logout").style.display = "inline-block"; $("msg").textContent = "";
     var peak = 0, peakH = -1; (d.hours || []).forEach(function (x) { if (x.n > peak) { peak = x.n; peakH = x.h; } });
     $("k-online").textContent = fmt(d.online); $("k-today").textContent = fmt(d.today);
-    $("k-peak").textContent = "오늘 실행 " + fmt(d.todayOpens) + "회 · 누적 설치 " + fmt(d.total) + "명";
+    $("k-peak").textContent = "오늘 실행 " + fmt(d.todayOpens) + "회";
     $("peakNote").textContent = peakH >= 0 && peak ? "가장 많았던 시간 " + peakH + "시 · " + peak + "명" : "";
     $("hourChart").innerHTML = hourChart(d.hours || []); hover($("hourChart"));
     /* average usage time (needs t0202_stats2 / t0202_beats) */
