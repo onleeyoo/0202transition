@@ -88,6 +88,21 @@
   @media (max-width:520px) { .cal { gap:4px; } .cal .d b { font-size:13px; } .cal .d i { top:3px; left:5px; font-size:9px; } }
   .scale { display:flex; align-items:center; justify-content:flex-end; gap:4px; color:var(--mut); font-size:11px; margin-top:10px; }
   .scale s { width:14px; height:14px; border-radius:4px; display:inline-block; }
+  .hmWrap { overflow-x:auto; padding:4px 2px 2px; }
+  .hm { display:grid; grid-auto-flow:column; grid-template-rows:18px repeat(7, 34px); gap:8px; width:max-content; align-items:center; }
+  .hm .rl { color:var(--mut); font-size:12px; text-align:right; padding-right:6px; }
+  .hm .ml { color:var(--mut); font-size:11px; white-space:nowrap; align-self:end; }
+  .hm .c { width:34px; height:34px; border-radius:9px; border:1px solid rgba(110,116,220,.16); transition:transform .12s; }
+  .hm .c:hover { transform:scale(1.12); }
+  .hm .c.x { visibility:hidden; }
+  .hm .c.now { outline:2px solid var(--tx); outline-offset:1px; }
+  .l0 { background:#f1f1f3; } .l1 { background:#eceefc; } .l2 { background:#d9ddfb; } .l3 { background:#bcc3f7; } .l4 { background:#959ef0; box-shadow:0 2px 8px rgba(91,99,230,.25); } .l5 { background:#6f78e6; box-shadow:0 3px 10px rgba(91,99,230,.35); }
+  @media (prefers-color-scheme: dark) { .l0 { background:#20242d; } .l1 { background:#262b45; } .l2 { background:#323a6b; } .l3 { background:#46509a; } .l4 { background:#5f6ad0; } .l5 { background:#7f88f2; } }
+  .hmFoot { display:flex; justify-content:space-between; align-items:center; color:var(--mut); font-size:12px; margin-top:12px; flex-wrap:wrap; gap:8px; }
+  .lg2 { display:flex; align-items:center; gap:4px; }
+  .lg2 s { width:14px; height:14px; border-radius:4px; display:inline-block; }
+  body #tip { background:#1f2330; padding:8px 12px; border-radius:10px; line-height:1.4; white-space:pre; }
+  body #tip b { font-size:15px; }
   #tip { position:fixed; pointer-events:none; background:#111827; color:#fff; font-size:12px; padding:6px 9px; border-radius:8px; display:none; z-index:9; white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.2); }
 </style>
 </head>
@@ -115,16 +130,15 @@
     </div>
 
     <div class="card">
-      <div class="calHead"><h2 id="calTitle">-</h2><div class="calNav"><button class="today" id="calNow">이번 달</button><button id="calPrev" aria-label="이전 달">‹</button><button id="calNext" aria-label="다음 달">›</button></div></div>
+      <h2>일별 사용자 달력 <em id="calRange"></em></h2>
       <div class="chips">
         <div class="chip"><span>하루 평균 사용자</span><b id="cAvg">-</b><small>명</small></div>
         <div class="chip"><span>가장 많았던 날</span><b id="cPeak">-</b><small id="cPeakD"></small></div>
-        <div class="chip"><span>신규 설치</span><b id="cNew">-</b><small>명</small></div>
-        <div class="chip"><span>패널 실행</span><b id="cOpens">-</b><small>회</small></div>
+        <div class="chip"><span>최근 30일 신규 설치</span><b id="cNew">-</b><small>명</small></div>
+        <div class="chip"><span>최근 30일 패널 실행</span><b id="cOpens">-</b><small>회</small></div>
       </div>
-      <div class="cal" id="cal"></div>
-      <div class="scale">적음 <s style="background:var(--grid)"></s><s style="background:rgba(61,107,245,.25)"></s><s style="background:rgba(61,107,245,.5)"></s><s style="background:rgba(61,107,245,.75)"></s><s style="background:rgba(61,107,245,1)"></s> 많음</div>
-      <div class="note">칸 숫자는 그날 패널을 쓴 사람 수예요 · 사용자가 많은 날일수록 진하게 보여요.</div>
+      <div class="hmWrap"><div class="hm" id="cal"></div></div>
+      <div class="hmFoot"><span>하루 사용자 수</span><span class="lg2">적음 <s class="l0"></s><s class="l1"></s><s class="l2"></s><s class="l3"></s><s class="l4"></s><s class="l5"></s> 많음</span></div>
     </div>
 
     <div class="card">
@@ -268,34 +282,33 @@
   var calDays = [], calMonth = null;
   var kstToday = function () { return new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); };
   function calRender() {
-    if (!calMonth) calMonth = kstToday().slice(0, 7);
-    var map = {}, max = 1, first = null;
-    calDays.forEach(function (x) { map[x.day] = x; max = Math.max(max, x.users); if (!first && (x.users || x.new)) first = x.day; });
-    var y = +calMonth.slice(0, 4), m = +calMonth.slice(5, 7), today = kstToday();
-    $("calTitle").textContent = y + "년 " + m + "월";
-    var firstMonth = (first || today).slice(0, 7);
-    $("calPrev").disabled = calMonth <= firstMonth; $("calNext").disabled = calMonth >= today.slice(0, 7);
-    var dim = new Date(Date.UTC(y, m, 0)).getUTCDate(), lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;   /* Monday first */
-    var h = ["월", "화", "수", "목", "금", "토", "일"].map(function (w, i) { return '<div class="wd' + (i === 6 ? " sun" : i === 5 ? " sat" : "") + '">' + w + "</div>"; }).join("");
-    for (var e = 0; e < lead; e++) h += '<div class="d empty"></div>';
-    var sumU = 0, cnt = 0, sumN = 0, sumO = 0, peak = null, WD = ["일", "월", "화", "수", "목", "금", "토"];
-    for (var dd = 1; dd <= dim; dd++) {
-      var key = calMonth + "-" + (dd < 10 ? "0" : "") + dd, x = map[key], wd = WD[new Date(Date.UTC(y, m - 1, dd)).getUTCDay()];
-      if (key > today) { h += '<div class="d future"><i>' + dd + "</i></div>"; continue; }
-      var u = x ? x.users : 0, p = u / max, bg = u ? "rgba(61,107,245," + (0.14 + p * 0.86).toFixed(2) + ")" : "", light = p > 0.5;
-      if (x && (!first || key >= first)) { sumU += u; cnt++; sumN += x.new || 0; sumO += x.opens || 0; if (!peak || u > peak.u) peak = { u: u, d: dd }; }
-      var t = m + "월 " + dd + "일 (" + wd + ") · 사용자 " + u + "명" + (x ? " · 신규 " + (x.new || 0) + "명" + (x.opens != null ? " · 실행 " + x.opens + "회" : "") : "");
-      h += '<div class="d' + (key === today ? " now" : "") + '" style="' + (bg ? "background:" + bg + ";" : "") + (light ? "color:#fff;" : "") + '" data-t="' + t + '"><i>' + dd + "</i><b>" + (u || "") + "</b></div>";
+    var map = {}, max = 1, first = null, today = kstToday();
+    calDays.forEach(function (x) { map[x.day] = x; max = Math.max(max, x.users || 0); if (!first && x.users) first = x.day; });
+    var D = function (iso) { return new Date(iso + "T00:00:00Z"); }, iso = function (d) { return d.toISOString().slice(0, 10); };
+    var start = D(first || today), minStart = new Date(D(today) - 7 * 7 * 864e5);
+    if (start > minStart) start = minStart;                                  /* at least 8 weeks */
+    start = new Date(start - ((start.getUTCDay() + 6) % 7) * 864e5);        /* back to Monday */
+    var WD = ["월", "화", "수", "목", "금", "토", "일"], h = "<div></div>";
+    WD.forEach(function (w, i) { h += '<div class="rl">' + w + "</div>"; });
+    var sumU = 0, cnt = 0, peak = null, lastMonth = "";
+    for (var wk = new Date(start); iso(wk) <= today; wk = new Date(wk.getTime() + 7 * 864e5)) {
+      var mo = iso(wk).slice(0, 7), lab = mo !== lastMonth ? (+mo.slice(5)) + "월" : ""; lastMonth = mo;
+      h += '<div class="ml">' + lab + "</div>";
+      for (var k = 0; k < 7; k++) {
+        var dd = new Date(wk.getTime() + k * 864e5), key = iso(dd);
+        if (key > today) { h += '<div class="c x"></div>'; continue; }
+        var x = map[key], u = x ? x.users || 0 : 0, lv = u ? 1 + Math.min(4, Math.floor(u / max * 4.999)) : 0;
+        if (first && key >= first) { sumU += u; cnt++; if (!peak || u > peak.u) peak = { u: u, d: key }; }
+        h += '<div class="c l' + lv + (key === today ? " now" : "") + '" data-t="' + (+key.slice(5, 7)) + "월 " + (+key.slice(8)) + "일 (" + WD[k] + ")\n" + u + '명 사용"></div>';
+      }
     }
     $("cal").innerHTML = h; hover($("cal"));
+    $("calRange").textContent = first ? md(first) + " ~ " + md(today) : "";
     $("cAvg").textContent = cnt ? fmt(Math.round(sumU / cnt)) : "-";
-    $("cPeak").textContent = peak && peak.u ? fmt(peak.u) : "-"; $("cPeakD").textContent = peak && peak.u ? "명 · " + m + "/" + peak.d : "";
-    $("cNew").textContent = fmt(sumN); $("cOpens").textContent = fmt(sumO);
+    $("cPeak").textContent = peak && peak.u ? fmt(peak.u) : "-"; $("cPeakD").textContent = peak && peak.u ? "명 · " + md(peak.d) : "";
+    var sN = 0, sO = 0; calDays.forEach(function (x) { if (x.new != null) sN += x.new || 0; if (x.opens != null) sO += x.opens || 0; });
+    $("cNew").textContent = fmt(sN); $("cOpens").textContent = fmt(sO);
   }
-  function shiftMonth(k) { var y = +calMonth.slice(0, 4), m = +calMonth.slice(5, 7) - 1 + k; var d = new Date(Date.UTC(y, m, 1)); calMonth = d.toISOString().slice(0, 7); calRender(); }
-  $("calPrev").onclick = function () { shiftMonth(-1); };
-  $("calNext").onclick = function () { shiftMonth(1); };
-  $("calNow").onclick = function () { calMonth = kstToday().slice(0, 7); calRender(); };
   function useChart(arr) {
     var W = 980, H = 150, pl = 34, pb = 22, max = 10;
     arr.forEach(function (x) { max = Math.max(max, Number(x.avgMin)); });
