@@ -27,6 +27,9 @@
   .err { color:#e5534b; text-align:center; margin-top:8px; font-size:13px; }
   .kpis { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; }
   @media (max-width:760px) { .kpis { grid-template-columns:repeat(2, 1fr); } }
+  .kpis.two { grid-template-columns:1fr 1fr; }
+  .chips.three { grid-template-columns:repeat(3, 1fr); }
+  @media (max-width:520px) { .chips.three { grid-template-columns:1fr 1fr; } }
   .kpi { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); }
   .kpi span { color:var(--mut); font-size:12px; display:flex; align-items:center; gap:6px; }
   .kpi b { display:block; font-size:28px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; margin-top:2px; }
@@ -101,41 +104,9 @@
   <div id="msg" class="err"></div>
 
   <div id="dash" style="display:none">
-    <div class="kpis">
-      <div class="kpi"><span><i class="dot"></i>지금 접속 중</span><b id="k-online">-</b><small>최근 10분</small></div>
+    <div class="kpis two">
+      <div class="kpi"><span><i class="dot"></i>지금 접속 중</span><b id="k-online">-</b><small>최근 10분 안에 패널이 열려 있던 사람</small></div>
       <div class="kpi"><span>오늘 사용자</span><b id="k-today">-</b><small id="k-peak">-</small></div>
-      <div class="kpi"><span>최근 7일 / 30일</span><b id="k-d7">-</b><small id="k-d30">-</small></div>
-      <div class="kpi"><span>누적 설치</span><b id="k-total">-</b><small id="k-opens">-</small></div>
-    </div>
-
-    <div class="tabs"><button data-tab="ov" class="on">개요</button><button data-tab="cal">달력</button></div>
-
-    <div id="tab-cal" style="display:none">
-      <div class="card">
-        <div class="calHead"><h2 id="calTitle">-</h2><div class="calNav"><button class="today" id="calNow">이번 달</button><button id="calPrev" aria-label="이전 달">‹</button><button id="calNext" aria-label="다음 달">›</button></div></div>
-        <div class="chips">
-          <div class="chip"><span>하루 평균 사용자</span><b id="cAvg">-</b><small>명</small></div>
-          <div class="chip"><span>가장 많았던 날</span><b id="cPeak">-</b><small id="cPeakD"></small></div>
-          <div class="chip"><span>신규 설치</span><b id="cNew">-</b><small>명</small></div>
-          <div class="chip"><span>패널 실행</span><b id="cOpens">-</b><small>회</small></div>
-        </div>
-        <div class="cal" id="cal"></div>
-        <div class="scale">적음 <s style="background:var(--grid)"></s><s style="background:rgba(61,107,245,.25)"></s><s style="background:rgba(61,107,245,.5)"></s><s style="background:rgba(61,107,245,.75)"></s><s style="background:rgba(61,107,245,1)"></s> 많음</div>
-        <div class="note" id="calNote">칸 숫자는 그날 패널을 쓴 사람 수예요 · 마우스를 올리면 신규 설치와 실행 횟수도 보여요.</div>
-      </div>
-    </div>
-
-    <div id="tab-ov">
-    <div class="card">
-      <h2>일별 사용자 <span class="lg"><span><i style="background:var(--blue)"></i>사용자</span><span><i style="background:var(--amber)"></i>신규 설치</span></span></h2>
-      <div class="total">기간 합계 신규 <b id="sumNew">-</b>명 · 하루 평균 사용자 <b id="avgUsers">-</b>명</div>
-      <div id="lineChart"></div>
-    </div>
-
-    <div class="card">
-      <h2>재방문율 <em>설치한 날(DAY 0) 이후 며칠 뒤에도 다시 썼는지</em></h2>
-      <div class="heatWrap" id="heat"></div>
-      <div class="note" id="heatNote"></div>
     </div>
 
     <div class="card">
@@ -143,10 +114,39 @@
       <div id="hourChart"></div>
     </div>
 
+    <div class="card">
+      <h2>사용자별 평균 이용시간 <em>한 사람이 하루에 패널을 켜 둔 시간</em></h2>
+      <div class="chips three">
+        <div class="chip"><span>오늘 평균</span><b id="uToday">-</b><small id="uTodayN"></small></div>
+        <div class="chip"><span>최근 30일 평균</span><b id="u30">-</b><small id="u30N"></small></div>
+        <div class="chip"><span>집계 시작</span><b id="uSince" style="font-size:16px">-</b></div>
+      </div>
+      <div id="useChart"></div>
+      <div class="note" id="useNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="calHead"><h2 id="calTitle">-</h2><div class="calNav"><button class="today" id="calNow">이번 달</button><button id="calPrev" aria-label="이전 달">‹</button><button id="calNext" aria-label="다음 달">›</button></div></div>
+      <div class="chips">
+        <div class="chip"><span>하루 평균 사용자</span><b id="cAvg">-</b><small>명</small></div>
+        <div class="chip"><span>가장 많았던 날</span><b id="cPeak">-</b><small id="cPeakD"></small></div>
+        <div class="chip"><span>신규 설치</span><b id="cNew">-</b><small>명</small></div>
+        <div class="chip"><span>패널 실행</span><b id="cOpens">-</b><small>회</small></div>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="scale">적음 <s style="background:var(--grid)"></s><s style="background:rgba(61,107,245,.25)"></s><s style="background:rgba(61,107,245,.5)"></s><s style="background:rgba(61,107,245,.75)"></s><s style="background:rgba(61,107,245,1)"></s> 많음</div>
+      <div class="note">칸 숫자는 그날 패널을 쓴 사람 수예요 · 사용자가 많은 날일수록 진하게 보여요.</div>
+    </div>
+
+    <div class="card">
+      <h2>일별 사용자 <span class="lg"><span><i style="background:var(--blue)"></i>사용자</span><span><i style="background:var(--amber)"></i>신규 설치</span></span></h2>
+      <div class="total">기간 합계 신규 <b id="sumNew">-</b>명 · 하루 평균 사용자 <b id="avgUsers">-</b>명</div>
+      <div id="lineChart"></div>
+    </div>
+
     <div class="row2">
       <div class="card"><h2>패널 버전 <em>최근 30일</em></h2><div id="vers"></div></div>
       <div class="card"><h2>프리미어 버전 <em>최근 30일</em></h2><div id="hosts"></div></div>
-    </div>
     </div>
   </div>
 </div>
@@ -169,7 +169,7 @@
     rpc("t0202_stats", k).then(function (res) {
       if (!res.ok) { setKey(null); return showLogin("키가 맞지 않아요"); }
       setKey(k);
-      rpc("t0202_cohort", k).then(function (c) { render(res.j, c.ok ? c.j : null); }).catch(function () { render(res.j, null); });
+      rpc("t0202_stats2", k).then(function (c) { render(res.j, c.ok ? c.j : null); }).catch(function () { render(res.j, null); });
       clearTimeout(timer); timer = setTimeout(function () { load(k, true); }, 60000);
     }).catch(function () { if (!quiet) showLogin("서버에 연결하지 못했어요"); });
   }
@@ -296,32 +296,55 @@
   $("calPrev").onclick = function () { shiftMonth(-1); };
   $("calNext").onclick = function () { shiftMonth(1); };
   $("calNow").onclick = function () { calMonth = kstToday().slice(0, 7); calRender(); };
-  function showTab(t) {
-    [].forEach.call(document.querySelectorAll(".tabs button"), function (b) { b.classList.toggle("on", b.dataset.tab === t); });
-    $("tab-ov").style.display = t === "ov" ? "" : "none"; $("tab-cal").style.display = t === "cal" ? "" : "none";
-    try { localStorage.setItem("0202stats.tab", t); } catch (e) {}
+  function useChart(arr) {
+    var W = 980, H = 150, pl = 34, pb = 22, max = 10;
+    arr.forEach(function (x) { max = Math.max(max, Number(x.avgMin)); });
+    max = Math.ceil(max / 10) * 10;
+    var n = arr.length, bw = (W - pl) / Math.max(n, 1);
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '">';
+    for (var g = 0; g <= 2; g++) { var yy = 8 + (H - pb - 8) * (1 - g / 2); s += '<line x1="' + pl + '" x2="' + W + '" y1="' + yy + '" y2="' + yy + '" stroke="' + css("--grid") + '"/><text x="' + (pl - 6) + '" y="' + (yy + 4) + '" fill="' + css("--mut") + '" font-size="11" text-anchor="end">' + (max * g / 2) + "</text>"; }
+    var every = Math.max(1, Math.round(n / 10));
+    arr.forEach(function (x, i) {
+      var v = Number(x.avgMin), h = (H - pb - 8) * v / max, x0 = pl + i * bw;
+      s += '<rect x="' + (x0 + 3) + '" y="' + (H - pb - h) + '" width="' + Math.max(bw - 6, 2) + '" height="' + h + '" rx="4" fill="' + (i === n - 1 ? css("--blue") : css("--blue2")) + '" data-t="' + md(x.d) + " · 평균 " + Math.round(v) + '분"/>';
+      if (i % every === 0 || i === n - 1) s += '<text x="' + (x0 + bw / 2) + '" y="' + (H - 6) + '" fill="' + css("--mut") + '" font-size="11" text-anchor="middle">' + md(x.d) + "</text>";
+    });
+    return s + "</svg>";
   }
-  [].forEach.call(document.querySelectorAll(".tabs button"), function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
-  try { var t0 = localStorage.getItem("0202stats.tab"); if (t0 === "cal") showTab("cal"); } catch (e) {}
+  var mins = function (m) { m = Math.round(Number(m) || 0); return m >= 60 ? Math.floor(m / 60) + "시간 " + (m % 60) + "분" : m + "분"; };
   function render(d, c) {
     $("login").style.display = "none"; $("dash").style.display = "block"; $("logout").style.display = "inline-block"; $("msg").textContent = "";
     var peak = 0, peakH = -1; (d.hours || []).forEach(function (x) { if (x.n > peak) { peak = x.n; peakH = x.h; } });
     $("k-online").textContent = fmt(d.online); $("k-today").textContent = fmt(d.today);
-    $("k-peak").textContent = "오늘 실행 " + fmt(d.todayOpens) + "회 · 최대 동시 " + peak + "명";
-    $("k-d7").textContent = fmt(d.d7); $("k-d30").textContent = "30일 " + fmt(d.d30) + "명";
-    $("k-total").textContent = fmt(d.total); $("k-opens").textContent = "누적 실행 " + fmt(d.opens) + "회";
-    $("peakNote").textContent = peakH >= 0 ? "가장 많았던 시간 " + peakH + "시 · " + peak + "명" : "";
-    var days = ((c && c.daily60) || d.daily).slice();
-    while (days.length > 7 && !days[0].users && !days[0].new) days.shift();   /* start at the first day with data */
+    $("k-peak").textContent = "오늘 실행 " + fmt(d.todayOpens) + "회 · 누적 설치 " + fmt(d.total) + "명";
+    $("peakNote").textContent = peakH >= 0 && peak ? "가장 많았던 시간 " + peakH + "시 · " + peak + "명" : "";
+    $("hourChart").innerHTML = hourChart(d.hours || []); hover($("hourChart"));
+    /* average usage time (needs t0202_stats2 / t0202_beats) */
+    if (c && c.use30) {
+      $("uToday").textContent = c.useToday && c.useToday.users ? mins(c.useToday.avgMin) : "-";
+      $("uTodayN").textContent = c.useToday && c.useToday.users ? fmt(c.useToday.users) + "명 기준" : "";
+      $("u30").textContent = c.use30.userDays ? mins(c.use30.avgMin) : "-";
+      $("u30N").textContent = c.use30.userDays ? "사람·일 " + fmt(c.use30.userDays) + "건" : "";
+      $("uSince").textContent = c.useSince ? md(c.useSince) : "-";
+      $("useChart").innerHTML = (c.useDaily || []).length ? useChart(c.useDaily) : ""; hover($("useChart"));
+      $("useNote").textContent = "패널이 열려 있는 동안 5분마다 보내는 신호로 계산해요 (5분 단위 어림값).";
+    } else {
+      ["uToday", "u30", "uSince"].forEach(function (id) { $(id).textContent = "-"; }); $("uTodayN").textContent = ""; $("u30N").textContent = "";
+      $("useChart").innerHTML = "";
+      $("useNote").textContent = "이용시간 집계가 아직 켜지지 않았어요. 서버에 집계를 추가하면 그때부터 쌓여요.";
+    }
+    /* calendar: all days if available, else last 30 */
+    var calSrc = (c && c.cal) ? c.cal.map(function (x) { return { day: x.d, users: x.u }; }) : (d.daily || []);
+    var dmap = {}; (d.daily || []).forEach(function (x) { dmap[x.day] = x; });
+    calDays = calSrc.map(function (x) { var o = dmap[x.day] || {}; return { day: x.day, users: x.users, new: o.new, opens: o.opens }; });
+    calRender();
+    var days = (d.daily || []).slice();
+    while (days.length > 7 && !days[0].users && !days[0].new) days.shift();
     var sumNew = 0, sumU = 0; days.forEach(function (x) { sumNew += x.new; sumU += x.users; });
     $("sumNew").textContent = fmt(sumNew); $("avgUsers").textContent = fmt(Math.round(sumU / Math.max(1, days.length)));
     $("lineChart").innerHTML = lineChart(days); hover($("lineChart"));
-    calDays = ((c && (c.cal || c.daily60)) || d.daily || []).slice(); calRender();
-    $("hourChart").innerHTML = hourChart(d.hours || []); hover($("hourChart"));
-    if (c && c.cohorts) { $("heat").innerHTML = heat(c.cohorts); hover($("heat")); $("heatNote").textContent = "칸 안의 %는 그날 설치한 사람 중 다시 패널을 연 비율, 아래 숫자는 사람 수예요."; }
-    else { $("heat").innerHTML = ""; $("heatNote").textContent = "재방문율을 보려면 Supabase SQL 편집기에서 v3.sql을 한 번 실행해 주세요."; }
-    bars($("vers"), d.versions.map(function (x) { return { v: x.v ? "v" + x.v : "?", n: x.n }; }));
-    bars($("hosts"), d.hosts);
+    bars($("vers"), (d.versions || []).map(function (x) { return { v: x.v ? "v" + x.v : "?", n: x.n }; }));
+    bars($("hosts"), (d.hosts || []).map(function (x) { return { v: x.v || "?", n: x.n }; }));
     $("sub").textContent = "익명 설치 ID 기준 · 한국 시간 · " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) + " 업데이트 · 1분마다 자동 새로고침";
   }
   $("go").onclick = function () { var k = $("key").value.trim(); if (k) load(k); };
