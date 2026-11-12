@@ -115,17 +115,6 @@
     </div>
 
     <div class="card">
-      <h2>사용자별 평균 이용시간 <em>한 사람이 하루에 패널을 켜 둔 시간</em></h2>
-      <div class="chips three">
-        <div class="chip"><span>오늘 평균</span><b id="uToday">-</b><small id="uTodayN"></small></div>
-        <div class="chip"><span>최근 30일 평균</span><b id="u30">-</b><small id="u30N"></small></div>
-        <div class="chip"><span>집계 시작</span><b id="uSince" style="font-size:16px">-</b></div>
-      </div>
-      <div id="useChart"></div>
-      <div class="note" id="useNote"></div>
-    </div>
-
-    <div class="card">
       <div class="calHead"><h2 id="calTitle">-</h2><div class="calNav"><button class="today" id="calNow">이번 달</button><button id="calPrev" aria-label="이전 달">‹</button><button id="calNext" aria-label="다음 달">›</button></div></div>
       <div class="chips">
         <div class="chip"><span>하루 평균 사용자</span><b id="cAvg">-</b><small>명</small></div>
@@ -136,6 +125,17 @@
       <div class="cal" id="cal"></div>
       <div class="scale">적음 <s style="background:var(--grid)"></s><s style="background:rgba(61,107,245,.25)"></s><s style="background:rgba(61,107,245,.5)"></s><s style="background:rgba(61,107,245,.75)"></s><s style="background:rgba(61,107,245,1)"></s> 많음</div>
       <div class="note">칸 숫자는 그날 패널을 쓴 사람 수예요 · 사용자가 많은 날일수록 진하게 보여요.</div>
+    </div>
+
+    <div class="card">
+      <h2>사용자별 평균 이용시간 <em>한 사람이 하루에 패널을 켜 둔 시간</em></h2>
+      <div class="chips three">
+        <div class="chip"><span>오늘 평균</span><b id="uToday">-</b><small id="uTodayN"></small></div>
+        <div class="chip"><span>최근 30일 평균</span><b id="u30">-</b><small id="u30N"></small></div>
+        <div class="chip"><span>집계 시작</span><b id="uSince" style="font-size:16px">-</b></div>
+      </div>
+      <div id="useChart"></div>
+      <div class="note" id="useNote"></div>
     </div>
 
     <div class="card">
