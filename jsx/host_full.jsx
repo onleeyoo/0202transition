@@ -368,6 +368,21 @@ var T0202 = (function () {
         }
     }
 
+    /* hold keys from t0 to t1 (sequence ticks), n per second, value = rate * seconds */
+    function stepKeys(prm, t0, t1, rate, n, toSrc) {
+        try { prm.setTimeVarying(true); } catch (e) {}
+        var dt = TPS / n, cnt = Math.max(1, Math.ceil((t1 - t0) / dt)), i, t, tk;
+        if (cnt > 1200) cnt = 1200;
+        for (i = 0; i <= cnt; i++) {
+            tk = Math.min(t0 + i * dt, t1);
+            t = mkTime(toSrc(tk));
+            prm.addKey(t);
+            prm.setValueAtKey(t, Math.round(rate * (tk - t0) / TPS * 100) / 100, 0);
+            try { prm.setInterpolationTypeAtKey(t, 4, i === cnt ? 1 : 0); } catch (e2) {}
+            if (tk >= t1) break;
+        }
+    }
+
     /* repeat a [[f,...]] pattern of length P (frames) until F frames */
     function loopArr(arr, P, F) {
         if (!arr) return arr;
@@ -917,6 +932,16 @@ var T0202 = (function () {
                     var pr3 = prmByName(c4, rt[y][0], fxl[x].fx);
                     if (!pr3) { missing[fxl[x].fx + ":" + rt[y][0]] = 1; continue; }
                     setKeys(pr3, [[src(startT), 0], [src(endT), Math.round(rt[y][1] * (endT - startT) / TPS * 100) / 100]]);
+                }
+            }
+            /* step keys: value grows rate/sec but jumps n times per second (hold keys) - choppy hand-drawn look without Posterize Time */
+            for (x = 0; x < fxl.length; x++) {
+                var c6 = fxl[x]._comp, sp = fxl[x].step || [];
+                if (!c6) continue;
+                for (y = 0; y < sp.length; y++) {
+                    var pr6 = prmByName(c6, sp[y][0], fxl[x].fx);
+                    if (!pr6) { missing[fxl[x].fx + ":" + sp[y][0]] = 1; continue; }
+                    stepKeys(pr6, startT, endT, sp[y][1], sp[y][2], src);
                 }
             }
             for (x = 0; x < fxl.length; x++) fxl[x]._comp = null;
