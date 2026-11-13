@@ -168,14 +168,33 @@ var T0202 = (function () {
     }
     /* Add an effect and make sure it really landed (localized Premiere can hand back a dud
        object for the English name). Tries every candidate name until the expected effect appears. */
+    /* components of the clip whose matchName fits `rx` */
+    function compsMatching(seq, ref, rx) {
+        var out = [];
+        try { var cs = seq.videoTracks[ref.t].clips[ref.c].components; for (var i = 0; i < cs.numItems; i++) if (rx.test(cs[i].matchName)) out.push(cs[i]); } catch (e) {}
+        return out;
+    }
     function addFxVerified(seq, ref, info, qs, name) {
-        var names = fxNames(name), tried = [];
+        var names = fxNames(name), tried = [], rx = EXPECT[name];
+        var had = rx ? compsMatching(seq, ref, rx).length : 0;
         for (var i = 0; i < names.length && i < 8; i++) {
             var obj = null;
             try { obj = qe.project.getVideoEffectByName(names[i]); } catch (x) {}
             if (!obj) continue;
             var comp = null;
             try { comp = addVideoFxTo(seq, ref, info, qs, obj); } catch (x2) { comp = null; }
+            /* the effect may have landed even when we picked the wrong component (or none):
+               if there is one more of it than before, use that one instead of adding it again */
+            if (rx && (!comp || !rx.test(comp.matchName))) {
+                var now = compsMatching(seq, ref, rx);
+                if (now.length > had) {
+                    var pick = null;
+                    for (var q = now.length - 1; q >= 0 && !pick; q--) if (isFresh(now[q])) pick = now[q];
+                    if (!pick) pick = now[now.length - 1];
+                    fxOk[name] = names[i];
+                    return pick;
+                }
+            }
             if (!comp) { tried.push(names[i] + ":none"); continue; }
             if (EXPECT[name] && !EXPECT[name].test(comp.matchName)) {
                 tried.push(names[i] + ":" + comp.matchName);
@@ -704,7 +723,21 @@ var T0202 = (function () {
         return "OK|" + moved + "|" + made;
     }
 
+    /* the same preset on the same clips arriving again right after (seen on some Windows setups:
+       one click, three Transforms) is answered with the previous result instead of running again */
     function applyPreset(p) {
+        var seq0 = app.project.activeSequence;
+        if (!seq0) return "ERR|noseq";
+        var sel0 = selectedClips(seq0), key = "";
+        try { key = p.toSource(); } catch (eK) { key = String(p.type) + p.scale + p.pos; }
+        for (var s0 = 0; s0 < sel0.length; s0++) key += "|" + sel0[s0].t + ":" + sel0[s0].clip.start.ticks;
+        var g = $.global, now = new Date().getTime();
+        if (g.__T0202_lastKey === key && now - (g.__T0202_lastAt || 0) < 2000 && g.__T0202_lastRes) return g.__T0202_lastRes;
+        var res = applyPresetRun(p);
+        if (String(res).indexOf("OK") === 0) { g.__T0202_lastKey = key; g.__T0202_lastAt = new Date().getTime(); g.__T0202_lastRes = res; }
+        return res;
+    }
+    function applyPresetRun(p) {
         var seq = app.project.activeSequence;
         if (!seq) return "ERR|noseq";
         var info = seqInfo(seq);
