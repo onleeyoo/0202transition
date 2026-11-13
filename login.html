@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>0202Transition 로그인</title>
+<style>
+:root{--bg:#0c0c0c;--card:#1a1a1a;--line:#2a2a2a;--tx:#eee;--mut:#8a8a8a;--pt:#b98be0}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;padding:16px}
+.box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px 24px}
+.brand{display:flex;align-items:center;gap:8px;font-size:18px;color:#bbb;margin-bottom:18px}.brand b{color:#fff}
+.dot{width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fbe9ff,#c46ee0 45%,#6a2fb0)}
+h1{font-size:17px;margin:0 0 6px}p{color:var(--mut);font-size:13px;line-height:1.6;margin:0 0 16px}
+input{width:100%;height:42px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;padding:0 12px;font-size:14px;outline:none}input:focus{border-color:var(--pt)}
+button{width:100%;height:42px;margin-top:10px;border:0;border-radius:8px;background:#7a4fb0;color:#fff;font-size:14px;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:default}
+.msg{margin-top:12px;font-size:13px;min-height:18px}.ok{color:#7fe0a0}.err{color:#f08080}
+.big{font-size:40px;text-align:center;margin:6px 0 10px}
+</style>
+</head>
+<body>
+<div class="box" id="box">
+  <div class="brand"><span class="dot"></span>0202<b>Transition</b></div>
+  <div id="form">
+    <h1>로그인</h1>
+    <p>이메일로 로그인 링크를 보내드려요.<br>메일의 링크를 누르면 패널이 자동으로 로그인돼요.</p>
+    <input id="email" type="email" placeholder="이메일 주소" autocomplete="email">
+    <button id="send">로그인 링크 받기</button>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  var SB_URL="https://dmpfjmcxnvslzsjvhmjh.supabase.co", SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtcGZqbWN4bnZzbHpzanZobWpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjc3NzUsImV4cCI6MjEwODgwMzc3NX0.LIh4M34bh-xchA8EJi_uShDt0ThVDo5fQKxKD11rkGs";
+  var sb=supabase.createClient(SB_URL,SB_KEY,{auth:{flowType:"implicit",detectSessionInUrl:true,persistSession:false}});
+  var q=new URLSearchParams(location.search), state=q.get("s")||"";
+  var msg=document.getElementById("msg");
+  function say(t,c){msg.textContent=t;msg.className="msg "+(c||"");}
+  function done(email){
+    document.getElementById("form").innerHTML='<div class="big">💜</div><h1>로그인 완료</h1><p>'+(email?email.replace(/[<>&]/g,"")+"<br>":"")+'이제 프리미어 패널로 돌아가세요.<br>몇 초 안에 패널이 로그인 상태로 바뀌어요.</p>';
+  }
+  if(!/^[0-9a-f]{32}$/.test(state)){document.getElementById("form").innerHTML='<h1>패널에서 열어주세요</h1><p>0202Transition 패널의 로그인 버튼을 눌러 이 페이지를 열어주세요.</p>';return;}
+  sb.auth.getSession().then(function(r){
+    var s=r.data&&r.data.session;
+    if(!s){ if(location.hash.indexOf("error")>=0) say("링크가 만료됐어요. 다시 받아주세요.","err"); return; }
+    say("로그인 처리 중…");
+    sb.rpc("t0202_login_claim",{p_state:state}).then(function(x){
+      if(x.data==="OK"){done(s.user&&s.user.email);history.replaceState(null,"",location.pathname+"?s="+state);}
+      else say("로그인 연결에 실패했어요. 패널에서 다시 시도해주세요.","err");
+    });
+  });
+  var btn=document.getElementById("send"), em=document.getElementById("email");
+  em.addEventListener("keydown",function(e){if(e.key==="Enter")btn.click();});
+  btn.onclick=function(){
+    var v=em.value.trim(); if(!/^\S+@\S+\.\S+$/.test(v)){say("이메일 주소를 확인해주세요","err");return;}
+    btn.disabled=true; say("보내는 중…");
+    sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:location.origin+location.pathname+"?s="+state}}).then(function(r){
+      btn.disabled=false;
+      if(r.error){say(/rate/i.test(r.error.message)?"잠시 후 다시 시도해주세요 (요청이 너무 많아요)":"메일을 못 보냈어요: "+r.error.message,"err");return;}
+      say("메일을 보냈어요! 받은 편지함에서 링크를 눌러주세요.","ok");
+    });
+  };
+})();
+</script>
+</body>
+</html>
