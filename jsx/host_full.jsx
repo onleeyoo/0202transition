@@ -65,12 +65,12 @@ var T0202 = (function () {
         "Brightness & Contrast": ["Brightness & Contrast", "\uBC1D\uAE30 \uBC0F \uB300\uBE44"],
         "ProcAmp": ["ProcAmp", "\uBE44\uB514\uC624 \uD504\uB85C\uC138\uC2A4 \uC570\uD504"],
         "Basic 3D": ["Basic 3D", "\uAE30\uBCF8 3D"],
-        "Crop": ["Crop", "\uC790\uB974\uAE30"],
-        "Ramp": ["Ramp", "\uADF8\uB77C\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uADF8\uB808\uC774\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uB7A8\uD504"],
+        "Crop": ["Crop (Legacy)", "Crop", "\uC790\uB974\uAE30(\uB808\uAC70\uC2DC)", "\uC790\uB974\uAE30 (\uB808\uAC70\uC2DC)", "\uC790\uB974\uAE30"],
+        "Ramp": ["Ramp (Legacy)", "Ramp", "\uADF8\uB77C\uB514\uC5B8\uD2B8 \uB7A8\uD504(\uB808\uAC70\uC2DC)", "\uADF8\uB77C\uB514\uC5B8\uD2B8 \uB7A8\uD504 (\uB808\uAC70\uC2DC)", "\uADF8\uB77C\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uADF8\uB808\uC774\uB514\uC5B8\uD2B8 \uB7A8\uD504", "\uB7A8\uD504"],
         "Alpha Adjust": ["Alpha Adjust", "\uC54C\uD30C \uC870\uC815"],
         "Track Matte Key": ["Track Matte Key", "\uD2B8\uB799 \uB9E4\uD2B8 \uD0A4"],
         "VR Chromatic Aberrations": ["VR Chromatic Aberrations", "VR \uC0C9\uC218\uCC28"],
-        "Alpha Glow": ["Alpha Glow", "\uC54C\uD30C \uAD11\uC120", "\uC54C\uD30C \uAE00\uB85C\uC6B0"]
+        "Alpha Glow": ["Alpha Glow (Legacy)", "Alpha Glow", "\uC54C\uD30C \uAD11\uC120(\uB808\uAC70\uC2DC)", "\uC54C\uD30C \uAD11\uC120 (\uB808\uAC70\uC2DC)", "\uC54C\uD30C \uAD11\uC120", "\uC54C\uD30C \uAE00\uB85C\uC6B0"]
     };
 
     /* parameter index fallback when display names are localized */
@@ -113,8 +113,8 @@ var T0202 = (function () {
         "Gaussian Blur": [/gaussian/i, /\uAC00\uC6B0\uC2DC\uC548/],
         "ProcAmp": [/procamp/i, /\uD504\uB85C\uC138\uC2A4 \uC570\uD504/],
         "Basic 3D": [/^basic 3d$/i, /\uAE30\uBCF8 3D/],
-        "Crop": [/^crop$/i, /^\uC790\uB974\uAE30$/],
-        "Ramp": [/^ramp$/i, /\uB7A8\uD504/],
+        "Crop": [/^crop$/i, /^\uC790\uB974\uAE30$/, /^crop \(/i, /^\uC790\uB974\uAE30\s*\(/],
+        "Ramp": [/^ramp$/i, /^ramp \(/i, /\uB7A8\uD504/],
         "Alpha Adjust": [/alpha adjust/i, /\uC54C\uD30C \uC870\uC815/],
         "Track Matte Key": [/track matte/i, /\uD2B8\uB799 \uB9E4\uD2B8/],
         "VR Chromatic Aberrations": [/chromatic aberration/i, /\uC0C9\s*\uC218\uCC28/, /chromatic/i],
