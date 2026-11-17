@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>0202Transition 결제자</title>
+<style>
+  :root {
+    --bg:#f4f6fb; --card:#ffffff; --line:#e6e9f2; --tx:#1d2330; --mut:#7b8396;
+    --pu:#7a4fc2; --pu2:#efe8fb; --green:#22b07d; --green2:#e3f6ee; --amber:#d98a1c; --amber2:#fdf1dc; --red:#d9534f; --red2:#fbe7e6;
+    --shadow:0 1px 2px rgba(20,30,60,.05), 0 6px 20px rgba(20,30,60,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1218; --card:#171b23; --line:#262c38; --tx:#e9ecf3; --mut:#8c93a5; --pu:#b48cf0; --pu2:#2a2140; --green:#4fd1a0; --green2:#16302a; --amber:#f0b45a; --amber2:#33281a; --red:#f08380; --red2:#3a1f20; --shadow:none; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--tx); font:14px/1.5 -apple-system, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:24px 16px 60px; }
+  header { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  header h1 { font-size:20px; margin:0; font-weight:800; letter-spacing:-.2px; }
+  header .sp { flex:1; }
+  header a, header button { font-size:12px; color:var(--mut); background:none; border:1px solid var(--line); border-radius:8px; padding:5px 10px; text-decoration:none; cursor:pointer; }
+  .login { display:flex; gap:8px; max-width:360px; margin:60px auto 8px; }
+  .login input { flex:1; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--tx); font:inherit; }
+  .login button, .tools button { padding:10px 16px; border-radius:10px; border:0; background:var(--pu); color:#fff; font-weight:700; cursor:pointer; font:inherit; }
+  .err { text-align:center; color:var(--mut); font-size:13px; min-height:20px; }
+  .chips { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px; margin-bottom:16px; }
+  .chip { background:var(--card); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); border:1px solid var(--line); }
+  .chip b { display:block; font-size:22px; font-weight:800; letter-spacing:-.3px; font-variant-numeric:tabular-nums; }
+  .chip span { font-size:12px; color:var(--mut); }
+  .tools { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .tools input { flex:1; min-width:180px; padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--tx); font:inherit; }
+  .seg { display:flex; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:3px; }
+  .seg button { background:none; color:var(--mut); padding:6px 10px; border-radius:7px; font-weight:600; font-size:12px; }
+  .seg button.on { background:var(--pu2); color:var(--pu); }
+  .list { background:var(--card); border-radius:14px; box-shadow:var(--shadow); border:1px solid var(--line); overflow:hidden; }
+  .row { display:grid; grid-template-columns: minmax(180px,1.6fr) 1fr 1.2fr 1fr .9fr; gap:12px; align-items:center; padding:13px 16px; border-top:1px solid var(--line); }
+  .row:first-child { border-top:0; }
+  .row.head { font-size:11.5px; color:var(--mut); font-weight:600; background:transparent; padding-top:10px; padding-bottom:10px; }
+  .em { font-weight:700; word-break:break-all; }
+  .sub { font-size:12px; color:var(--mut); }
+  .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px; margin:2px 4px 0 0; white-space:nowrap; }
+  .t-pu { background:var(--pu2); color:var(--pu); } .t-gr { background:var(--green2); color:var(--green); } .t-am { background:var(--amber2); color:var(--amber); } .t-rd { background:var(--red2); color:var(--red); } .t-gy { background:var(--bg); color:var(--mut); }
+  .days b { font-size:18px; font-variant-numeric:tabular-nums; }
+  .bar { height:5px; border-radius:3px; background:var(--bg); margin-top:5px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--pu); border-radius:3px; }
+  .num { font-variant-numeric:tabular-nums; }
+  .empty { padding:30px; text-align:center; color:var(--mut); }
+  .foot { margin-top:10px; font-size:12px; color:var(--mut); }
+  @media (max-width: 760px) {
+    .row.head { display:none; }
+    .row { grid-template-columns: 1fr 1fr; }
+    .row > div:first-child { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>결제자 관리</h1>
+    <span class="sp"></span>
+    <a href="stats.html">사용 통계</a>
+    <button id="logout" style="display:none">로그아웃</button>
+  </header>
+
+  <div id="login" class="login" style="display:none">
+    <input id="key" type="password" placeholder="관리자 키" autocomplete="off">
+    <button id="go">보기</button>
+  </div>
+  <div id="msg" class="err"></div>
+
+  <div id="dash" style="display:none">
+    <div class="chips" id="chips"></div>
+    <div class="tools">
+      <input id="q" type="search" placeholder="이메일 검색">
+      <div class="seg" id="filter">
+        <button data-f="all" class="on">전체</button>
+        <button data-f="legacy">기존 사용자</button>
+        <button data-f="new">신규</button>
+        <button data-f="pending">로그인 전</button>
+        <button data-f="soon">30일 이내 만료</button>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+<script>
+(function () {
+  var SB_URL = "https://dmpfjmcxnvslzsjvhmjh.supabase.co", SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtcGZqbWN4bnZzbHpzanZobWpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjc3NzUsImV4cCI6MjEwODgwMzc3NX0.LIh4M34bh-xchA8EJi_uShDt0ThVDo5fQKxKD11rkGs", LS = "0202stats.key";
+  var $ = function (id) { return document.getElementById(id); };
+  function getKey() { try { return localStorage.getItem(LS); } catch (e) { return null; } }
+  function setKey(k) { try { if (k) localStorage.setItem(LS, k); else localStorage.removeItem(LS); } catch (e) {} }
+  function esc(t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function showLogin(m) { $("login").style.display = "flex"; $("dash").style.display = "none"; $("logout").style.display = "none"; $("msg").textContent = m || ""; }
+  var fmt = function (n) { return Number(n || 0).toLocaleString("ko-KR"); };
+  function kd(s) { if (!s) return "-"; var d = new Date(s); var k = new Date(d.getTime() + 9 * 3600e3); return (k.getUTCMonth() + 1) + "." + k.getUTCDate() + " " + ("0" + k.getUTCHours()).slice(-2) + ":" + ("0" + k.getUTCMinutes()).slice(-2); }
+  function kday(s) { if (!s) return "-"; var k = new Date(new Date(s).getTime() + 9 * 3600e3); return k.getUTCFullYear() + "." + (k.getUTCMonth() + 1) + "." + k.getUTCDate(); }
+  function ago(s) {
+    if (!s) return "접속 기록 없음";
+    var m = Math.floor((Date.now() - new Date(s).getTime()) / 60000);
+    if (m < 2) return "지금 접속 중"; if (m < 60) return m + "분 전 접속"; if (m < 1440) return Math.floor(m / 60) + "시간 전 접속"; return Math.floor(m / 1440) + "일 전 접속";
+  }
+  var data = null, filt = "all";
+  function rpc(name, k) {
+    return fetch(SB_URL + "/rest/v1/rpc/" + name, { method: "POST", headers: { "Content-Type": "application/json", apikey: SB_KEY, Authorization: "Bearer " + SB_KEY }, body: JSON.stringify({ p_key: k }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
+  }
+  var timer = null;
+  function load(k, quiet) {
+    if (!quiet) $("msg").textContent = "불러오는 중…";
+    rpc("t0202_admin_buyers", k).then(function (res) {
+      if (!res.ok) { setKey(null); return showLogin("키가 맞지 않아요"); }
+      setKey(k); data = res.j; $("msg").textContent = "";
+      $("login").style.display = "none"; $("dash").style.display = "block"; $("logout").style.display = "inline-block";
+      render();
+      clearTimeout(timer); timer = setTimeout(function () { load(k, true); }, 60000);
+    }).catch(function () { if (!quiet) showLogin("서버에 연결하지 못했어요"); });
+  }
+  function planText(b) {
+    var ms = (b.orders || []).map(function (o) { return o.months + "개월"; });
+    return ms.join(" + ");
+  }
+  function render() {
+    var B = data.buyers || [];
+    var amount = 0, legacy = 0, pending = 0, soon = 0;
+    B.forEach(function (b) { amount += Number(b.amount || 0); if (b.legacy) legacy++; if (!b.signed_in || b.pending) pending++; if (b.days_left != null && b.days_left <= 30) soon++; });
+    $("chips").innerHTML = [
+      ["결제한 사람", fmt(B.length) + "명"], ["결제 금액 합계", fmt(amount) + "원"], ["기존 사용자", fmt(legacy) + "명"],
+      ["로그인 전 (기간 대기)", fmt(pending) + "명"], ["체험 중", fmt(data.trials) + "명"], ["가입(로그인) 전체", fmt(data.signed_up) + "명"]
+    ].map(function (c) { return '<div class="chip"><span>' + c[0] + '</span><b>' + c[1] + '</b></div>'; }).join("");
+    var q = $("q").value.trim().toLowerCase();
+    var rows = B.filter(function (b) {
+      if (q && String(b.email || "").indexOf(q) < 0) return false;
+      if (filt === "legacy") return !!b.legacy;
+      if (filt === "new") return b.signed_in && !b.legacy;
+      if (filt === "pending") return !b.signed_in || b.pending;
+      if (filt === "soon") return b.days_left != null && b.days_left <= 30;
+      return true;
+    });
+    var head = '<div class="row head"><div>이메일</div><div>결제</div><div>남은 기간</div><div>구분</div><div>접속</div></div>';
+    if (!rows.length) { $("list").innerHTML = head + '<div class="empty">해당하는 결제자가 없어요</div>'; }
+    else $("list").innerHTML = head + rows.map(function (b) {
+      var total = (Number(b.months || 0) + Number(b.bonus_months || 0)) * 30.4, left = b.days_left;
+      var pct = left == null ? 0 : Math.max(2, Math.min(100, Math.round(left / Math.max(1, total) * 100)));
+      var tags = [];
+      if (b.legacy) tags.push('<span class="tag t-pu">기존 사용자</span>'); else if (b.signed_in) tags.push('<span class="tag t-gy">신규</span>');
+      if (b.bonus_months) tags.push('<span class="tag t-gr">+' + b.bonus_months + '개월 혜택</span>');
+      if (!b.signed_in) tags.push('<span class="tag t-am">아직 로그인 안 함</span>');
+      else if (b.pending) tags.push('<span class="tag t-am">적용 대기</span>');
+      if (b.v1_ver) tags.push('<span class="tag t-gy">무료 ' + esc(b.v1_ver) + '</span>');
+      var daysCell = left == null
+        ? '<div class="sub">로그인하면 기간이 시작돼요</div>'
+        : '<div class="days"><b>' + left + '</b>일 남음</div><div class="sub">' + kday(b.plan_until) + ' 까지</div><div class="bar"><i style="width:' + pct + '%;' + (left <= 30 ? 'background:var(--red)' : '') + '"></i></div>';
+      return '<div class="row">' +
+        '<div><div class="em">' + esc(b.email) + '</div><div class="sub">첫 결제 ' + kd(b.first_paid) + (b.orders && b.orders.length > 1 ? ' · ' + b.orders.length + '번 결제' : '') + '</div></div>' +
+        '<div><div class="num"><b>' + esc(planText(b)) + '</b></div><div class="sub num">' + fmt(b.amount) + '원</div></div>' +
+        '<div>' + daysCell + '</div>' +
+        '<div>' + tags.join("") + '</div>' +
+        '<div class="sub">' + ago(b.last_seen) + '</div>' +
+      '</div>';
+    }).join("");
+    $("foot").textContent = "1분마다 자동으로 새로고침 · 마지막 확인 " + kd(data.now) + " · 잔여일은 결제 기간 + 혜택 기간 기준";
+  }
+  $("go").onclick = function () { var k = $("key").value.trim(); if (k) load(k); };
+  $("key").onkeydown = function (e) { if (e.key === "Enter") $("go").onclick(); };
+  $("logout").onclick = function () { setKey(null); clearTimeout(timer); showLogin(""); };
+  $("q").oninput = function () { if (data) render(); };
+  Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (b) {
+    b.onclick = function () { filt = b.getAttribute("data-f"); Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (x) { x.classList.toggle("on", x === b); }); if (data) render(); };
+  });
+  var k = getKey(); if (k) load(k); else showLogin("");
+})();
+</script>
+</body>
+</html>
