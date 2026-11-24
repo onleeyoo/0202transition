@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>링크페이지 통계</title>
+<style>
+  :root {
+    --bg:#f4f6fb; --card:#fff; --line:#e6e9f2; --grid:#eef0f6; --tx:#1d2330; --mut:#7b8396;
+    --k:#f97316; --green:#22b07d; --red:#e5534b; --shadow:0 1px 2px rgba(20,30,60,.05),0 6px 20px rgba(20,30,60,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1218; --card:#171b23; --line:#262c38; --grid:#20252f; --tx:#e9ecf3; --mut:#8c93a5; --k:#fb923c; --shadow:none; }
+  }
+  * { box-sizing:border-box; min-width:0; }
+  body { margin:0; background:var(--bg); color:var(--tx); font:14px/1.5 -apple-system,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1040px; margin:0 auto; padding:28px 16px 56px; }
+  .top { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  h1 { font-size:22px; margin:0; letter-spacing:-.3px; }
+  h2 { font-size:15px; margin:0 0 12px; }
+  .sub { color:var(--mut); font-size:12px; }
+  .sub a { color:var(--mut); }
+  button { font:inherit; cursor:pointer; }
+  .ghost { background:transparent; border:1px solid var(--line); color:var(--mut); border-radius:8px; padding:6px 10px; font-size:12px; text-decoration:none; }
+  .login { display:flex; gap:8px; margin:60px auto; max-width:420px; }
+  .login input { flex:1; background:var(--card); border:1px solid var(--line); color:var(--tx); border-radius:10px; padding:11px 12px; font-size:16px; }
+  .login button { background:var(--k); color:#fff; border:0; border-radius:10px; padding:0 18px; font-weight:700; }
+  .msg { color:var(--red); text-align:center; font-size:13px; min-height:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  @media (max-width:760px) { .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .kpi span { color:var(--mut); font-size:12px; display:flex; align-items:center; gap:6px; }
+  .kpi b { display:block; font-size:clamp(22px,3vw,28px); font-weight:800; font-variant-numeric:tabular-nums; }
+  .kpi small { color:var(--mut); font-size:11px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(34,176,125,.18); animation:pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity:.35; } }
+  @media (prefers-reduced-motion:reduce) { .dot { animation:none; } }
+  .grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px; }
+  @media (max-width:760px) { .grid2 { grid-template-columns:1fr; } }
+  .fig { position:relative; height:240px; }
+  .fig svg { position:absolute; inset:0; width:100%; height:100%; }
+  .hours { display:flex; align-items:flex-end; gap:3px; height:120px; }
+  .hours i { flex:1; background:var(--k); border-radius:3px 3px 0 0; min-height:2px; opacity:.8; }
+  .hlab { display:flex; justify-content:space-between; font-size:11px; color:var(--mut); margin-top:4px; }
+  .bars .r { display:grid; grid-template-columns:7.5em minmax(0,1fr) 4.5em; gap:10px; align-items:center; padding:6px 0; font-size:13px; }
+  .bars .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bars .bg { background:var(--grid); border-radius:6px; height:10px; overflow:hidden; }
+  .bars .bg i { display:block; height:100%; background:var(--k); border-radius:6px; }
+  .bars .n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .bars .n small { color:var(--mut); }
+  .empty { color:var(--mut); font-size:13px; }
+  #tip { position:fixed; display:none; background:var(--tx); color:var(--bg); font-size:12px; padding:4px 8px; border-radius:6px; pointer-events:none; white-space:nowrap; z-index:9; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>링크페이지 통계</h1><div class="sub"><a href="https://contact.0202production.com">contact.0202production.com</a> · 방문자는 브라우저마다 1번만 셈 · <span id="upd">1분마다 새로고침</span></div></div>
+    <div><a class="ghost" href="dashboard.html">← 통합 대시보드</a> <button class="ghost" id="logout" style="display:none">로그아웃</button></div>
+  </div>
+  <form class="login" id="login" style="display:none">
+    <input id="key" type="password" placeholder="관리자 키" autocomplete="current-password">
+    <button type="submit">확인</button>
+  </form>
+  <div class="msg" id="msg"></div>
+
+  <div id="dash" style="display:none">
+    <div class="kpis" id="kpis"></div>
+    <div class="card">
+      <h2>최근 30일 방문자</h2>
+      <div class="fig"><svg id="chart"></svg></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>링크 클릭 <span class="sub">오늘 / 30일</span></h2><div class="bars" id="clicks"></div></div>
+      <div class="card"><h2>유입 경로 <span class="sub">30일 · ?ref= 기준</span></h2><div class="bars" id="refs"></div></div>
+      <div class="card"><h2>오늘 시간대별 방문자</h2><div class="hours" id="hours"></div><div class="hlab"><span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>23시</span></div></div>
+      <div class="card"><h2>기기 <span class="sub">30일 방문자</span></h2><div class="bars" id="devs"></div></div>
+    </div>
+  </div>
+</div>
+<div id="tip"></div>
+<script>
+{
+  const SB_URL = "https://dmpfjmcxnvslzsjvhmjh.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtcGZqbWN4bnZzbHpzanZobWpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjc3NzUsImV4cCI6MjEwODgwMzc3NX0.LIh4M34bh-xchA8EJi_uShDt0ThVDo5fQKxKD11rkGs";
+  const LS = "0202stats.key";
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const fmt = n => Number(n || 0).toLocaleString("ko-KR");
+  const getKey = () => { try { return localStorage.getItem(LS); } catch (e) { return null; } };
+  const setKey = k => { try { k ? localStorage.setItem(LS, k) : localStorage.removeItem(LS); } catch (e) {} };
+  const LINKS = { store:"플러그인 스토어", transition:"0202Transition", swatch:"0202Swatch", blog:"블로그 글", kakao:"카톡 상담", mail:"이메일 문의" };
+  const DEVS = { mobile:"모바일", desktop:"PC", tablet:"태블릿", "?":"알 수 없음" };
+
+  function showLogin(m) { $("login").style.display = "flex"; $("dash").style.display = "none"; $("logout").style.display = "none"; $("msg").textContent = m || ""; }
+  let timer = null, data = null;
+  function load(k, quiet) {
+    if (!quiet) $("msg").textContent = "불러오는 중…";
+    fetch(SB_URL + "/rest/v1/rpc/l0202_stats", { method:"POST", headers:{ "Content-Type":"application/json", apikey:SB_KEY, Authorization:"Bearer " + SB_KEY }, body:JSON.stringify({ p_key:k }) })
+      .then(r => r.json().then(j => ({ ok:r.ok, j })))
+      .then(res => {
+        if (!res.ok) { setKey(null); return showLogin("키가 맞지 않아요"); }
+        setKey(k); data = res.j;
+        $("msg").textContent = ""; $("login").style.display = "none"; $("dash").style.display = "block"; $("logout").style.display = "inline-block";
+        render();
+        const now = new Date(Date.now() + 9 * 3600e3);
+        $("upd").textContent = "업데이트 " + ("0" + now.getUTCHours()).slice(-2) + ":" + ("0" + now.getUTCMinutes()).slice(-2);
+        clearTimeout(timer); timer = setTimeout(() => load(k, true), 60000);
+      })
+      .catch(() => { if (!quiet) showLogin("서버에 연결하지 못했어요"); });
+  }
+
+  function bars(el, rows, label, two) {
+    if (!rows.length) { el.innerHTML = '<div class="empty">아직 기록이 없어요</div>'; return; }
+    const max = Math.max(1, ...rows.map(r => two ? r.d30 : r.n));
+    el.innerHTML = rows.map(r => { const v = two ? r.d30 : r.n;
+      return '<div class="r"><div class="nm">' + esc(label(r.v)) + '</div><div class="bg"><i style="width:' + (v / max * 100) + '%"></i></div><div class="n">' + (two ? '<small>' + fmt(r.today) + ' / </small>' : '') + fmt(v) + '</div></div>'; }).join("");
+  }
+
+  function render() {
+    const d = data, daily = d.daily || [], last = daily[daily.length - 1] || {};
+    const k = [
+      ['<i class="dot"></i>지금 보는 중', fmt(d.online), "최근 10분"],
+      ["오늘 방문자", fmt(d.today), "신규 " + fmt(last.new) + " · 열람 " + fmt(d.todayOpens) + "회"],
+      ["7일 / 30일", fmt(d.d7) + " / " + fmt(d.d30), "중복 제외 방문자"],
+      ["누적 방문자", fmt(d.total), "누적 열람 " + fmt(d.opens) + "회"]
+    ];
+    $("kpis").innerHTML = k.map(([l, v, s]) => '<div class="card kpi"><span>' + l + '</span><b>' + v + '</b><small>' + s + '</small></div>').join("");
+    bars($("clicks"), d.clicks || [], v => LINKS[v] || v, true);
+    bars($("refs"), d.refs || [], v => v, false);
+    bars($("devs"), d.devices || [], v => DEVS[v] || v, false);
+    const hs = d.hours || [], hm = Math.max(1, ...hs.map(h => h.n));
+    $("hours").innerHTML = hs.map(h => '<i style="height:' + (h.n / hm * 100) + '%" data-t="' + h.h + '시 · ' + fmt(h.n) + '명"></i>').join("");
+    drawChart();
+  }
+
+  const svg = $("chart");
+  function drawChart() {
+    const W = svg.clientWidth, H = svg.clientHeight; if (!W || !data) return;
+    const d = data.daily || [], n = d.length, max = Math.max(1, ...d.map(x => x.users));
+    const L = 34, R = 8, T = 8, B = 22, cw = W - L - R, ch = H - T - B, bw = cw / Math.max(1, n);
+    const Y = v => T + ch - v / max * ch;
+    const step = Math.max(1, Math.pow(10, Math.floor(Math.log10(max)))), ticks = [];
+    for (let v = 0; v <= max; v += (max / step > 5 ? step * 2 : step)) ticks.push(v);
+    let h = ticks.map(v => '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="var(--grid)"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end" font-size="11" fill="var(--mut)">' + fmt(v) + '</text>').join("");
+    const every = W < 520 ? 10 : 5;
+    d.forEach((x, i) => {
+      const x0 = L + i * bw + bw * .15, w = bw * .7, md = esc(x.day.slice(5).replace("-", "."));
+      h += '<rect x="' + x0 + '" y="' + Y(x.users) + '" width="' + w + '" height="' + (T + ch - Y(x.users)) + '" rx="2" fill="var(--k)" opacity="' + (i === n - 1 ? 1 : .75) + '" data-t="' + md + ' · 방문자 ' + fmt(x.users) + ' (신규 ' + fmt(x.new) + ') · 열람 ' + fmt(x.opens) + '"/>';
+      if (i % every === 0 || i === n - 1) h += '<text x="' + (x0 + w / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="var(--mut)">' + md + '</text>';
+    });
+    svg.innerHTML = h;
+  }
+  const ro = new ResizeObserver(drawChart); ro.observe(svg);
+
+  const tip = $("tip");
+  document.addEventListener("mousemove", e => {
+    const t = e.target.getAttribute && e.target.getAttribute("data-t");
+    if (!t) { tip.style.display = "none"; return; }
+    tip.textContent = t; tip.style.display = "block";
+    tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + "px"; tip.style.top = (e.clientY - 34) + "px";
+  });
+  $("login").addEventListener("submit", e => { e.preventDefault(); const k = $("key").value.trim(); if (k) load(k); });
+  $("logout").addEventListener("click", () => { setKey(null); clearTimeout(timer); showLogin(""); });
+  const k0 = getKey(); k0 ? load(k0) : showLogin("");
+}
+</script>
+</body>
+</html>

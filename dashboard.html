@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>0202 통합 대시보드</title>
+<style>
+  :root {
+    --bg:#f4f6fb; --card:#fff; --line:#e6e9f2; --grid:#eef0f6; --tx:#1d2330; --mut:#7b8396;
+    --t:#8b5cf6; --s:#ec4899; --c:#0ea5e9; --l:#f97316; --green:#22b07d; --red:#e5534b; --amber:#f0a83a;
+    --shadow:0 1px 2px rgba(20,30,60,.05),0 6px 20px rgba(20,30,60,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1218; --card:#171b23; --line:#262c38; --grid:#20252f; --tx:#e9ecf3; --mut:#8c93a5; --t:#a78bfa; --s:#f472b6; --c:#38bdf8; --l:#fb923c; --shadow:none; }
+  }
+  * { box-sizing:border-box; min-width:0; }
+  body { margin:0; background:var(--bg); color:var(--tx); font:14px/1.5 -apple-system,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1240px; margin:0 auto; padding:28px 16px 56px; }
+  .top { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  h1 { font-size:22px; margin:0; letter-spacing:-.3px; }
+  h2 { font-size:15px; margin:0 0 12px; }
+  .sub { color:var(--mut); font-size:12px; }
+  button { font:inherit; cursor:pointer; }
+  .ghost { background:transparent; border:1px solid var(--line); color:var(--mut); border-radius:8px; padding:6px 10px; font-size:12px; }
+  .login { display:flex; gap:8px; margin:60px auto; max-width:420px; }
+  .login input { flex:1; background:var(--card); border:1px solid var(--line); color:var(--tx); border-radius:10px; padding:11px 12px; font-size:16px; }
+  .login button { background:var(--t); color:#fff; border:0; border-radius:10px; padding:0 18px; font-weight:700; }
+  .msg { color:var(--red); text-align:center; font-size:13px; min-height:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .money { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  @media (max-width:760px) { .money { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .kpi span { color:var(--mut); font-size:12px; }
+  .kpi b { display:block; font-size:clamp(20px,3vw,28px); font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .kpi small { color:var(--mut); font-size:11px; }
+  .svcs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+  @media (max-width:1100px) { .svcs { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:600px) { .svcs { grid-template-columns:1fr; } }
+  .svc { border-top:4px solid var(--k); }
+  .svc .hd { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; }
+  .svc .hd b { font-size:16px; }
+  .live { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--mut); white-space:nowrap; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(34,176,125,.18); animation:pulse 1.6s infinite; }
+  .dot.off { background:var(--mut); box-shadow:none; animation:none; }
+  @keyframes pulse { 50% { opacity:.35; } }
+  @media (prefers-reduced-motion:reduce) { .dot { animation:none; } }
+  .nums { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; text-align:center; }
+  .nums div { background:var(--bg); border-radius:10px; padding:8px 4px; }
+  .nums b { display:block; font-size:18px; font-variant-numeric:tabular-nums; }
+  .nums span { font-size:11px; color:var(--mut); }
+  .spark { display:flex; align-items:flex-end; gap:2px; height:46px; margin:12px 0 8px; }
+  .spark i { flex:1; background:var(--k); opacity:.75; border-radius:2px 2px 0 0; min-height:2px; }
+  .spark i:last-child { opacity:1; }
+  .links { display:flex; gap:8px; flex-wrap:wrap; }
+  .links a { font-size:12px; color:var(--k); text-decoration:none; border:1px solid var(--line); border-radius:8px; padding:5px 9px; }
+  .links a:hover { border-color:var(--k); }
+  .row2 { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:12px; }
+  @media (max-width:900px) { .row2 { grid-template-columns:1fr; } }
+  .fig { position:relative; height:260px; }
+  .fig svg { position:absolute; inset:0; width:100%; height:100%; }
+  .legend { display:flex; gap:14px; font-size:12px; color:var(--mut); margin-bottom:6px; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:10px; height:3px; border-radius:2px; vertical-align:middle; margin-right:5px; }
+  .pay { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-top:1px solid var(--line); font-size:13px; }
+  .pay:first-of-type { border-top:0; }
+  .pay .em { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pay .r { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .warn { color:var(--amber); }
+  .err { color:var(--red); font-size:12px; }
+  #tip { position:fixed; display:none; background:var(--tx); color:var(--bg); font-size:12px; padding:4px 8px; border-radius:6px; pointer-events:none; white-space:nowrap; z-index:9; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>0202 통합 대시보드</h1><div class="sub" id="upd">배포한 서비스 한눈에 보기 · 1분마다 새로고침</div></div>
+    <button class="ghost" id="logout" style="display:none">로그아웃</button>
+  </div>
+
+  <form class="login" id="login" style="display:none">
+    <input id="key" type="password" placeholder="관리자 키" autocomplete="current-password">
+    <button type="submit">확인</button>
+  </form>
+  <div class="msg" id="msg"></div>
+
+  <div id="dash" style="display:none">
+    <div class="money" id="money"></div>
+    <div class="svcs" id="svcs"></div>
+    <div class="row2">
+      <div class="card">
+        <h2>최근 30일 일별 사용자</h2>
+        <div class="legend" id="legend"></div>
+        <div class="fig"><svg id="chart"></svg></div>
+      </div>
+      <div class="card">
+        <h2>최근 결제 · 0202Transition</h2>
+        <div id="pays"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tip"></div>
+<script>
+{
+  const SB_URL = "https://dmpfjmcxnvslzsjvhmjh.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtcGZqbWN4bnZzbHpzanZobWpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjc3NzUsImV4cCI6MjEwODgwMzc3NX0.LIh4M34bh-xchA8EJi_uShDt0ThVDo5fQKxKD11rkGs";
+  const LS = "0202stats.key";
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const fmt = n => Number(n || 0).toLocaleString("ko-KR");
+  const getKey = () => { try { return localStorage.getItem(LS); } catch (e) { return null; } };
+  const setKey = k => { try { k ? localStorage.setItem(LS, k) : localStorage.removeItem(LS); } catch (e) {} };
+
+  // 서비스 목록 — 새 서비스는 여기에 한 줄 추가
+  const SVCS = [
+    { id:"t", name:"0202Transition", rpc:"t0202_stats", color:"--t", unit:"설치",
+      links:[["사용 통계","stats.html"],["결제자 관리","buyers.html"]] },
+    { id:"s", name:"0202Swatch", rpc:"s0202_stats", color:"--s", unit:"설치", links:[] },
+    { id:"c", name:"카메라 앵글 시뮬레이터", rpc:"c0202_stats", color:"--c", unit:"방문자",
+      links:[["방문 통계","https://cameraangles.0202production.com/stats.html"],["사이트","https://cameraangles.0202production.com/"]] },
+    { id:"l", name:"링크페이지 (contact)", rpc:"l0202_stats", color:"--l", unit:"방문자",
+      links:[["방문 통계","contact-stats.html"],["사이트","https://contact.0202production.com/"]] }
+  ];
+
+  const rpc = (name, k) => fetch(SB_URL + "/rest/v1/rpc/" + name, {
+    method:"POST", headers:{ "Content-Type":"application/json", apikey:SB_KEY, Authorization:"Bearer " + SB_KEY },
+    body:JSON.stringify({ p_key:k })
+  }).then(r => r.json().then(j => ({ ok:r.ok, j })));
+
+  function showLogin(m) { $("login").style.display = "flex"; $("dash").style.display = "none"; $("logout").style.display = "none"; $("msg").textContent = m || ""; }
+
+  let timer = null, stats = {}, buyers = null;
+  async function load(k, quiet) {
+    if (!quiet) $("msg").textContent = "불러오는 중…";
+    let res;
+    try { res = await Promise.all([...SVCS.map(s => rpc(s.rpc, k).catch(() => null)), rpc("t0202_admin_buyers", k).catch(() => null)]); }
+    catch (e) { if (!quiet) showLogin("서버에 연결하지 못했어요"); return; }
+    if (res.every(r => !r)) { if (!quiet) showLogin("서버에 연결하지 못했어요"); return; }
+    if (res.every(r => !r || !r.ok)) { setKey(null); return showLogin("키가 맞지 않아요"); }
+    setKey(k);
+    SVCS.forEach((s, i) => { stats[s.id] = res[i] && res[i].ok ? res[i].j : null; });
+    const b = res[SVCS.length]; buyers = b && b.ok ? b.j : null;
+    $("msg").textContent = ""; $("login").style.display = "none"; $("dash").style.display = "block"; $("logout").style.display = "inline-block";
+    render();
+    const now = new Date(Date.now() + 9 * 3600e3);
+    $("upd").textContent = "마지막 업데이트 " + ("0" + now.getUTCHours()).slice(-2) + ":" + ("0" + now.getUTCMinutes()).slice(-2) + " · 1분마다 새로고침";
+    clearTimeout(timer); timer = setTimeout(() => load(k, true), 60000);
+  }
+
+  function kstMonth(s) { const d = new Date(new Date(s).getTime() + 9 * 3600e3); return d.getUTCFullYear() * 12 + d.getUTCMonth(); }
+
+  function renderMoney() {
+    const box = $("money");
+    if (!buyers) { box.innerHTML = '<div class="card kpi"><span>결제</span><b>–</b><small class="err">불러오지 못했어요</small></div>'; return; }
+    const B = buyers.buyers || [], thisM = kstMonth(Date.now());
+    let total = 0, month = 0, monthN = 0, pending = 0, soon = 0;
+    B.forEach(b => {
+      total += Number(b.amount || 0);
+      (b.orders || []).forEach(o => { if (o.paid && kstMonth(o.paid) === thisM) { month += Number(o.amount || 0); monthN++; } });
+      if (!b.signed_in || b.pending) pending++;
+      if (b.days_left != null && b.days_left <= 30) soon++;
+    });
+    const items = [
+      ["누적 결제 금액", fmt(total) + "원", "결제자 " + fmt(B.length) + "명"],
+      ["이번 달 결제", fmt(month) + "원", fmt(monthN) + "건"],
+      ["체험 중 / 가입자", fmt(buyers.trials) + " / " + fmt(buyers.signed_up), "7일 무료 체험 진행 중"],
+      ["확인 필요", fmt(pending + soon) + "명", '<span class="' + (pending ? "warn" : "") + '">로그인 전 ' + fmt(pending) + '</span> · 30일 내 만료 ' + fmt(soon)]
+    ];
+    box.innerHTML = items.map(([l, v, s]) => '<div class="card kpi"><span>' + l + '</span><b>' + v + '</b><small>' + s + '</small></div>').join("");
+  }
+
+  function renderSvcs() {
+    $("svcs").innerHTML = SVCS.map(s => {
+      const d = stats[s.id], links = s.links.map(([t, u]) => '<a href="' + esc(u) + '">' + t + ' →</a>').join("");
+      if (!d) return '<div class="card svc" style="--k:var(' + s.color + ')"><div class="hd"><b>' + s.name + '</b></div><div class="err">불러오지 못했어요</div><div class="links" style="margin-top:10px">' + links + '</div></div>';
+      const daily = d.daily || [], max = Math.max(1, ...daily.map(x => x.users));
+      const bars = daily.map(x => '<i style="height:' + (x.users / max * 100) + '%" data-t="' + esc(x.day.slice(5).replace("-", ".")) + " · " + fmt(x.users) + '명"></i>').join("");
+      const newToday = daily.length ? daily[daily.length - 1].new : 0;
+      return '<div class="card svc" style="--k:var(' + s.color + ')">' +
+        '<div class="hd"><b>' + s.name + '</b><span class="live"><i class="dot' + (d.online ? "" : " off") + '"></i>지금 ' + fmt(d.online) + '명</span></div>' +
+        '<div class="nums"><div><b>' + fmt(d.today) + '</b><span>오늘</span></div><div><b>' + fmt(d.d7) + '</b><span>7일</span></div><div><b>' + fmt(d.d30) + '</b><span>30일</span></div><div><b>' + fmt(d.total) + '</b><span>누적 ' + s.unit + '</span></div></div>' +
+        '<div class="spark">' + bars + '</div>' +
+        '<div class="sub" style="margin-bottom:10px">오늘 신규 ' + fmt(newToday) + ' · 오늘 실행 ' + fmt(d.todayOpens) + '회</div>' +
+        '<div class="links">' + links + '</div></div>';
+    }).join("");
+  }
+
+  const svg = $("chart");
+  function drawChart() {
+    const W = svg.clientWidth, H = svg.clientHeight; if (!W) return;
+    const series = SVCS.filter(s => stats[s.id]).map(s => ({ s, d:stats[s.id].daily || [] }));
+    $("legend").innerHTML = series.map(x => '<span><i style="background:var(' + x.s.color + ')"></i>' + x.s.name + '</span>').join("");
+    if (!series.length) { svg.innerHTML = ""; return; }
+    const n = Math.max(...series.map(x => x.d.length)), max = Math.max(1, ...series.flatMap(x => x.d.map(y => y.users)));
+    const L = 34, R = 8, T = 8, B = 22, cw = W - L - R, ch = H - T - B;
+    const X = i => L + (n > 1 ? i / (n - 1) : 0) * cw, Y = v => T + ch - v / max * ch;
+    const step = Math.pow(10, Math.floor(Math.log10(max))), ticks = [];
+    for (let v = 0; v <= max; v += (max / step > 5 ? step * 2 : step)) ticks.push(v);
+    let h = ticks.map(v => '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="var(--grid)"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end" font-size="11" fill="var(--mut)">' + fmt(v) + '</text>').join("");
+    const d0 = series[0].d, every = W < 520 ? 10 : 5;
+    d0.forEach((x, i) => { if (i % every === 0 || i === d0.length - 1) h += '<text x="' + X(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="var(--mut)">' + esc(x.day.slice(5).replace("-", ".")) + '</text>'; });
+    series.forEach(x => {
+      h += '<polyline fill="none" stroke="var(' + x.s.color + ')" stroke-width="2" stroke-linejoin="round" points="' + x.d.map((y, i) => X(i) + "," + Y(y.users)).join(" ") + '"/>';
+      h += x.d.map((y, i) => '<circle cx="' + X(i) + '" cy="' + Y(y.users) + '" r="6" fill="transparent" data-t="' + esc(x.s.name + " · " + y.day.slice(5).replace("-", ".") + " · " + fmt(y.users) + "명") + '"/>').join("");
+    });
+    svg.innerHTML = h;
+  }
+  const ro = new ResizeObserver(drawChart); ro.observe(svg);
+
+  function renderPays() {
+    const box = $("pays");
+    if (!buyers) { box.innerHTML = '<div class="err">불러오지 못했어요</div>'; return; }
+    const list = [];
+    (buyers.buyers || []).forEach(b => (b.orders || []).forEach(o => list.push({ em:b.email, signed:b.signed_in, ...o })));
+    list.sort((a, b) => new Date(b.paid) - new Date(a.paid));
+    if (!list.length) { box.innerHTML = '<div class="sub">아직 결제가 없어요</div>'; return; }
+    const kd = s => { const k = new Date(new Date(s).getTime() + 9 * 3600e3); return (k.getUTCMonth() + 1) + "." + k.getUTCDate() + " " + ("0" + k.getUTCHours()).slice(-2) + ":" + ("0" + k.getUTCMinutes()).slice(-2); };
+    const mask = e => { const [a, d] = String(e || "").split("@"); return a ? a.slice(0, 3) + "***" + (d ? "@" + d : "") : "-"; };
+    box.innerHTML = list.slice(0, 8).map(o =>
+      '<div class="pay"><div class="em"><div>' + esc(mask(o.em)) + '</div><div class="sub">' + esc(kd(o.paid)) + ' · ' + esc(o.months) + '개월' + (o.applied ? '' : ' · <span class="warn">미적용</span>') + '</div></div>' +
+      '<div class="r"><b>' + fmt(o.amount) + '원</b></div></div>').join("") +
+      '<div class="links" style="margin-top:10px;--k:var(--t)"><a href="buyers.html">결제자 전체 보기 →</a></div>';
+  }
+
+  function render() { renderMoney(); renderSvcs(); renderPays(); drawChart(); }
+
+  const tip = $("tip");
+  document.addEventListener("mousemove", e => {
+    const t = e.target.getAttribute && e.target.getAttribute("data-t");
+    if (!t) { tip.style.display = "none"; return; }
+    tip.textContent = t; tip.style.display = "block";
+    tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + "px"; tip.style.top = (e.clientY - 34) + "px";
+  });
+  $("login").addEventListener("submit", e => { e.preventDefault(); const k = $("key").value.trim(); if (k) load(k); });
+  $("logout").addEventListener("click", () => { setKey(null); clearTimeout(timer); showLogin(""); });
+  const k0 = getKey(); k0 ? load(k0) : showLogin("");
+}
+</script>
+</body>
+</html>
