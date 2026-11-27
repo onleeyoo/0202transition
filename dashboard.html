@@ -67,6 +67,20 @@
   .warn { color:var(--amber); }
   .err { color:var(--red); font-size:12px; }
   #tip { position:fixed; display:none; background:var(--tx); color:var(--bg); font-size:12px; padding:4px 8px; border-radius:6px; pointer-events:none; white-space:nowrap; z-index:9; }
+  .chat { margin-top:12px; }
+  .chat .hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .chat .hd h2 { margin:0; }
+  .chatList { height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:4px; }
+  .chatList > .cm:first-child { margin-top:auto; }
+  .cm { font-size:13px; line-height:1.5; }
+  .cm .who { font-weight:700; font-size:12px; }
+  .cm .tm { color:var(--mut); font-size:11px; margin-left:6px; font-variant-numeric:tabular-nums; }
+  .cm p { margin:1px 0 0 14px; word-break:break-all; white-space:pre-wrap; }
+  .cm .cdot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:0; }
+  .cm .badge { font-size:10px; background:var(--t); color:#fff; border-radius:4px; padding:0 5px; margin-left:4px; font-weight:700; }
+  .cm.hid { opacity:.45; }
+  .cm .flag { font-size:10px; color:var(--red); margin-left:6px; }
+  .chatEmpty { color:var(--mut); font-size:13px; text-align:center; margin:auto 0; }
 </style>
 </head>
 <body>
@@ -95,6 +109,10 @@
         <h2>최근 결제 · 0202Transition</h2>
         <div id="pays"></div>
       </div>
+    </div>
+    <div class="card chat">
+      <div class="hd"><h2>0202Transition 커뮤니티 채팅</h2><span class="live" id="chatLive"><i class="dot"></i>3초마다 새로고침</span></div>
+      <div class="chatList" id="chatList"><div class="chatEmpty">불러오는 중…</div></div>
     </div>
   </div>
 </div>
@@ -221,7 +239,42 @@
       '<div class="links" style="margin-top:10px;--k:var(--t)"><a href="buyers.html">결제자 전체 보기 →</a></div>';
   }
 
-  function render() { renderMoney(); renderSvcs(); renderPays(); drawChart(); }
+  /* community chat (0202Transition panel) — polled every 3 s while this page is visible */
+  const COLS = ["#c9a3ea","#9fd3c7","#ffc6a8","#a8c8ff","#ffb3c7","#e6d38a","#b5e48c","#f4a6a6","#7fdcef","#c9a684","#e4e4ec","#ff9f5e"];
+  let chat = [], chatLast = 0, chatT = null, chatBusy = false, chatFullAt = 0;
+  const hhmm = t => { const k = new Date(t * 1000 + 9 * 3600e3); return (k.getUTCMonth() + 1) + "." + k.getUTCDate() + " " + ("0" + k.getUTCHours()).slice(-2) + ":" + ("0" + k.getUTCMinutes()).slice(-2); };
+  function paintChat() {
+    const box = $("chatList"), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    if (!chat.length) { box.innerHTML = '<div class="chatEmpty">아직 메시지가 없어요</div>'; return; }
+    box.innerHTML = chat.map(q => {
+      const c = COLS[q.c] || COLS[0];
+      return '<div class="cm' + (q.hidden ? " hid" : "") + '"><span class="cdot" style="background:' + c + '"></span><span class="who">' + esc(q.n) + '</span>' +
+        (q.op ? '<span class="badge">주인장</span>' : "") + '<span class="tm">' + hhmm(q.t) + '</span>' +
+        (q.hidden ? '<span class="flag">숨김</span>' : q.reports ? '<span class="flag">신고 ' + q.reports + '</span>' : "") + '<p>' + esc(q.m) + '</p></div>';
+    }).join("");
+    if (atBottom || !box._seen) { box.scrollTop = box.scrollHeight; box._seen = 1; }
+  }
+  async function pullChat() {
+    const k = getKey(); if (!k || chatBusy || document.hidden) return;
+    chatBusy = true;
+    const full = Date.now() - chatFullAt > 60000;   // full refresh each minute (picks up hidden / reported)
+    try {
+      const r = await fetch(SB_URL + "/rest/v1/rpc/t0202_admin_chat", { method:"POST", headers:{ "Content-Type":"application/json", apikey:SB_KEY, Authorization:"Bearer " + SB_KEY }, body:JSON.stringify({ p_key:k, p_after: full ? 0 : chatLast }) });
+      const j = await r.json();
+      if (r.ok && j && j.list) {
+        if (full) { chat = j.list; chatFullAt = Date.now(); }
+        else { const have = new Set(chat.map(q => q.id)); j.list.forEach(q => { if (!have.has(q.id)) chat.push(q); }); chat = chat.slice(-100); }
+        chat.forEach(q => { if (q.id > chatLast) chatLast = q.id; });
+        $("chatLive").innerHTML = '<i class="dot' + (j.online ? "" : " off") + '"></i>패널 켠 사람 ' + fmt(j.online) + '명 · 전체 메시지 ' + fmt(j.total) + '개';
+        paintChat();
+      }
+    } catch (e) {}
+    chatBusy = false;
+  }
+  setInterval(pullChat, 3000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pullChat(); });
+
+  function render() { renderMoney(); renderSvcs(); renderPays(); drawChart(); pullChat(); }
 
   const tip = $("tip");
   document.addEventListener("mousemove", e => {
